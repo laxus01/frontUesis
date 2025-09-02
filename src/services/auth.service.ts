@@ -1,7 +1,7 @@
 import axios from 'axios';
 import CatalogService from './catalog.service';
 
-const API_URL = 'http://localhost:3000/auth/login';
+const API_URL = 'https://backuesis-production.up.railway.app/auth/login';
 
 export interface LoginResponse {
   token?: string;
