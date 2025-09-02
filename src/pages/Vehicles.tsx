@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Autocomplete,
 } from '@mui/material';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -135,20 +136,25 @@ function WithOwnerDialogSelector({ value, options, onChange, onCreate, disabled 
   return (
     <>
       <Stack direction="row" spacing={1} alignItems="center">
-        <FormControl fullWidth size="small" required disabled={disabled}>
-          <InputLabel id={`owner-select-label`}>Propietario</InputLabel>
-          <Select
-            labelId={`owner-select-label`}
-            label="Propietario"
-            value={value}
-            displayEmpty
-            onChange={e => onChange(e.target.value === 0 ? 0 : Number(e.target.value))}
-          >
-            {options.map((o) => (
-              <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Box sx={{ flex: 1 }}>
+          <Autocomplete
+            options={options}
+            value={options.find(o => o.id === value) || null}
+            getOptionLabel={(o) => o?.name ?? ''}
+            isOptionEqualToValue={(opt, val) => opt.id === val.id}
+            onChange={(event, newValue) => onChange(newValue ? newValue.id : 0)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Propietario"
+                size="small"
+                required
+                fullWidth
+              />
+            )}
+            disabled={disabled}
+          />
+        </Box>
         <Tooltip title="Agregar propietario">
           <span>
             <IconButton color="primary" onClick={() => setOpen(true)} disabled={disabled} aria-label="Agregar propietario">
@@ -215,6 +221,7 @@ export default function Vehicles(): JSX.Element {
   const { success, warning, error } = useNotify();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number>(0);
   const [plate, setPlate] = useState('');
   const [model, setModel] = useState('');
   const [internalNumber, setInternalNumber] = useState('');
@@ -254,6 +261,31 @@ export default function Vehicles(): JSX.Element {
     loadFromStorage();
   }, []);
 
+  // Realtime plate suggestions and existing vehicle prefill
+  const [plateQuery, setPlateQuery] = useState('');
+  const [plateOptions, setPlateOptions] = useState<string[]>([]);
+  const [plateResults, setPlateResults] = useState<any[]>([]);
+  const [plateLoading, setPlateLoading] = useState(false);
+  useEffect(() => {
+    const q = plateQuery.trim();
+    if (!q) { setPlateOptions([]); return; }
+    const handle = setTimeout(async () => {
+      setPlateLoading(true);
+      try {
+        const res = await api.get<any[]>('/vehicles', { params: { plate: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setPlateResults(data);
+        const plates = Array.from(new Set(data.map((v: any) => String(v?.plate || '').trim()).filter(Boolean)));
+        setPlateOptions(plates);
+      } catch {
+        setPlateOptions([]);
+      } finally {
+        setPlateLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [plateQuery]);
+
   const canSubmit = useMemo(() => {
     return (
       plate.trim().length > 0 &&
@@ -286,17 +318,24 @@ export default function Vehicles(): JSX.Element {
       payload.ownerId = ownerId;
       if (companyId) payload.companyId = companyId;
 
-      const res = await api.post('/vehicles', payload);
-      success('Vehículo creado con éxito (ID ' + res.data?.id + ').');
-      // Reset básico
-      setPlate('');
-      setModel('');
-      setInternalNumber('');
-      setMobileNumber('');
-      setMakeId(0);
-      setInsurerId(0);
-      setCommunicationCompanyId(0);
-      setOwnerId(0);
+      let res;
+      if (selectedVehicleId > 0) {
+        res = await api.put(`/vehicles/${selectedVehicleId}`, payload);
+        success('Vehículo actualizado con éxito (ID ' + (res.data?.id ?? selectedVehicleId) + ').');
+      } else {
+        res = await api.post('/vehicles', payload);
+        success('Vehículo creado con éxito (ID ' + res.data?.id + ').');
+        // Reset solo en creación
+        setPlate('');
+        setModel('');
+        setInternalNumber('');
+        setMobileNumber('');
+        setMakeId(0);
+        setInsurerId(0);
+        setCommunicationCompanyId(0);
+        setOwnerId(0);
+        setSelectedVehicleId(0);
+      }
     } catch (e: any) {
       console.error('Error creating vehicle', e);
       const msg = e?.response?.data?.message || 'Error creando vehículo';
@@ -321,13 +360,70 @@ export default function Vehicles(): JSX.Element {
             <Stack spacing={2}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Placa"
-                    size="small"
-                    fullWidth
-                    value={plate}
-                    onChange={e => setPlate(e.target.value.toUpperCase())}
-                    required
+                  <Autocomplete
+                    options={plateOptions}
+                    value={plate || null}
+                    onChange={(event, newValue) => {
+                      const val = (newValue || '').toString().toUpperCase();
+                      setPlate(val);
+                      setPlateQuery(val);
+                      if (val) {
+                        const found = plateResults.find((v) => String(v?.plate).trim().toUpperCase() === val.trim());
+                        if (found) {
+                          setModel(String(found?.model || ''));
+                          setInternalNumber(String(found?.internalNumber || ''));
+                          setMobileNumber(String(found?.mobileNumber || ''));
+                          // Map nested objects from API response
+                          const nextMakeId = Number(found?.make?.id || 0);
+                          const nextInsurerId = Number(found?.insurer?.id || 0);
+                          const nextCommId = Number(found?.communicationCompany?.id || 0);
+                          const nextOwnerId = Number(found?.owner?.id || 0);
+
+                          setMakeId(nextMakeId);
+                          setInsurerId(nextInsurerId);
+                          setCommunicationCompanyId(nextCommId);
+                          setOwnerId(nextOwnerId);
+
+                          // Ensure option lists include the selected entities so UI shows labels
+                          if (nextMakeId > 0 && found?.make?.name && !makes.some(m => m.id === nextMakeId)) {
+                            setMakes(prev => [...prev, { id: nextMakeId, name: String(found.make.name) }]);
+                          }
+                          if (nextInsurerId > 0 && found?.insurer?.name && !insurers.some(i => i.id === nextInsurerId)) {
+                            setInsurers(prev => [...prev, { id: nextInsurerId, name: String(found.insurer.name) }]);
+                          }
+                          if (nextCommId > 0 && found?.communicationCompany?.name && !communicationCompanies.some(c => c.id === nextCommId)) {
+                            setCommunicationCompanies(prev => [...prev, { id: nextCommId, name: String(found.communicationCompany.name) }]);
+                          }
+                          if (nextOwnerId > 0 && found?.owner?.name && !owners.some(o => o.id === nextOwnerId)) {
+                            setOwners(prev => [...prev, { id: nextOwnerId, name: String(found.owner.name) }]);
+                          }
+                          setSelectedVehicleId(Number(found?.id || 0));
+                        } else {
+                          setSelectedVehicleId(0);
+                        }
+                      }
+                    }}
+                    inputValue={plateQuery}
+                    onInputChange={(e, newInput) => {
+                      const next = (newInput || '').toUpperCase();
+                      setPlateQuery(next);
+                      setPlate(next);
+                      setSelectedVehicleId(0);
+                    }}
+                    loading={plateLoading}
+                    freeSolo
+                    disablePortal
+                    filterOptions={(x) => x}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Placa"
+                        size="small"
+                        fullWidth
+                        required
+                        disabled={loading || submitting}
+                      />
+                    )}
                     disabled={loading || submitting}
                   />
                 </Box>
@@ -422,7 +518,7 @@ export default function Vehicles(): JSX.Element {
 
               <Box display="flex" gap={1}>
                 <Button type="submit" variant="contained" disabled={!canSubmit || loading || submitting}>
-                  {submitting ? 'Guardando...' : 'Guardar'}
+                  {submitting ? (selectedVehicleId > 0 ? 'Actualizando...' : 'Guardando...') : (selectedVehicleId > 0 ? 'Actualizar' : 'Guardar')}
                 </Button>
                 <Button type="button" variant="outlined" disabled={loading || submitting}
                   onClick={() => {
@@ -431,6 +527,7 @@ export default function Vehicles(): JSX.Element {
                     setInsurerId(0);
                     setCommunicationCompanyId(0);
                     setOwnerId(0);
+                    setSelectedVehicleId(0);
                   }}
                 >
                   Limpiar
