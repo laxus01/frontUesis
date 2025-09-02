@@ -19,6 +19,10 @@ import {
   DialogActions,
   Autocomplete,
 } from '@mui/material';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import BusinessIcon from '@mui/icons-material/Business';
 import CellTowerIcon from '@mui/icons-material/CellTower';
@@ -226,6 +230,10 @@ export default function Vehicles(): JSX.Element {
   const [model, setModel] = useState('');
   const [internalNumber, setInternalNumber] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [engineNumber, setEngineNumber] = useState('');
+  const [chassisNumber, setChassisNumber] = useState('');
+  const [line, setLine] = useState('');
+  const [entryDate, setEntryDate] = useState<Dayjs | null>(null);
   const [makeId, setMakeId] = useState<number>(0);
   const [insurerId, setInsurerId] = useState<number>(0);
   const [communicationCompanyId, setCommunicationCompanyId] = useState<number>(0);
@@ -316,6 +324,10 @@ export default function Vehicles(): JSX.Element {
       payload.insurerId = insurerId;
       payload.communicationCompanyId = communicationCompanyId;
       payload.ownerId = ownerId;
+      if (engineNumber.trim()) payload.engineNumber = engineNumber.trim();
+      if (chassisNumber.trim()) payload.chassisNumber = chassisNumber.trim();
+      if (line.trim()) payload.line = line.trim();
+      if (entryDate) payload.entryDate = entryDate.format('YYYY-MM-DD');
       if (companyId) payload.companyId = companyId;
 
       let res;
@@ -330,6 +342,10 @@ export default function Vehicles(): JSX.Element {
         setModel('');
         setInternalNumber('');
         setMobileNumber('');
+        setEngineNumber('');
+        setChassisNumber('');
+        setLine('');
+        setEntryDate(null);
         setMakeId(0);
         setInsurerId(0);
         setCommunicationCompanyId(0);
@@ -373,6 +389,11 @@ export default function Vehicles(): JSX.Element {
                           setModel(String(found?.model || ''));
                           setInternalNumber(String(found?.internalNumber || ''));
                           setMobileNumber(String(found?.mobileNumber || ''));
+                          setEngineNumber(String((found as any)?.engineNumber || ''));
+                          setChassisNumber(String((found as any)?.chassisNumber || ''));
+                          setLine(String((found as any)?.line || ''));
+                          const ed = (found as any)?.entryDate ? dayjs(String((found as any).entryDate)) : null;
+                          setEntryDate(ed && ed.isValid() ? ed : null);
                           // Map nested objects from API response
                           const nextMakeId = Number(found?.make?.id || 0);
                           const nextInsurerId = Number(found?.insurer?.id || 0);
@@ -467,6 +488,54 @@ export default function Vehicles(): JSX.Element {
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Box sx={{ flex: 1 }}>
+                  <TextField
+                    label="Número Motor"
+                    size="small"
+                    fullWidth
+                    value={engineNumber}
+                    onChange={e => setEngineNumber(e.target.value)}
+                    disabled={loading || submitting}
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <TextField
+                    label="Número Chasis"
+                    size="small"
+                    fullWidth
+                    value={chassisNumber}
+                    onChange={e => setChassisNumber(e.target.value)}
+                    disabled={loading || submitting}
+                  />
+                </Box>
+              </Stack>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <Box sx={{ flex: 1 }}>
+                  <TextField
+                    label="Línea"
+                    size="small"
+                    fullWidth
+                    value={line}
+                    onChange={e => setLine(e.target.value)}
+                    disabled={loading || submitting}
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      label="Fecha de ingreso"
+                      value={entryDate}
+                      onChange={(v) => setEntryDate(v)}
+                      format="YYYY-MM-DD"
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                      disabled={loading || submitting}
+                    />
+                  </LocalizationProvider>
+                </Box>
+              </Stack>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <Box sx={{ flex: 1 }}>
                   <WithDialogSelector
                     label="Marca"
                     value={makeId}
@@ -522,7 +591,7 @@ export default function Vehicles(): JSX.Element {
                 </Button>
                 <Button type="button" variant="outlined" disabled={loading || submitting}
                   onClick={() => {
-                    setPlate(''); setModel(''); setInternalNumber(''); setMobileNumber('');
+                    setPlate(''); setModel(''); setInternalNumber(''); setMobileNumber(''); setEngineNumber(''); setChassisNumber(''); setLine(''); setEntryDate(null);
                     setMakeId(0);
                     setInsurerId(0);
                     setCommunicationCompanyId(0);

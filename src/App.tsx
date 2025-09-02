@@ -10,6 +10,7 @@ import Drivers from './pages/Drivers';
 import ControlCard from './pages/ControlCard';
 import PrintControlCard from './pages/PrintControlCard';
 import AbsolutePrintCard from './pages/AbsolutePrintCard';
+import AbsoluteAdministrationPaymentPrint from './pages/AbsoluteAdministrationPaymentPrint';
 import Administration from './pages/Administration';
 import AdministrationPayments from './pages/AdministrationPayments';
 
@@ -17,7 +18,7 @@ function App(): JSX.Element {
   const [currentUser, setCurrentUser] = useState<any>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const isPrintOnly = location.pathname === '/absolute-print';
+  const isPrintOnly = location.pathname === '/absolute-print' || location.pathname === '/absolute-print-administration';
 
   useEffect(() => {
     const raw = localStorage.getItem('user');
@@ -47,7 +48,12 @@ function App(): JSX.Element {
 
   if (isPrintOnly) {
     // Render bare printing page without header/sidebar/auth wrappers
-    return <AbsolutePrintCard />;
+    if (location.pathname === '/absolute-print') {
+      return <AbsolutePrintCard />;
+    }
+    if (location.pathname === '/absolute-print-administration') {
+      return <AbsoluteAdministrationPaymentPrint />;
+    }
   }
 
   return (
@@ -121,6 +127,7 @@ function App(): JSX.Element {
                 <Route path="/control-sheet" element={<ControlCard />} />
                 <Route path="/print-control-card" element={<PrintControlCard />} />
                 <Route path="/absolute-print" element={<AbsolutePrintCard />} />
+                <Route path="/absolute-print-administration" element={<AbsoluteAdministrationPaymentPrint />} />
                 <Route path="/administration" element={<Administration />} />
                 <Route path="/reports/administration-payments" element={<AdministrationPayments />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

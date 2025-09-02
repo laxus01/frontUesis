@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Autocomplete, Box, Button, Card, CardContent, CircularProgress, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Autocomplete, Box, Button, Card, CardContent, CircularProgress, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import PrintIcon from '@mui/icons-material/Print';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import type { Dayjs } from 'dayjs';
@@ -108,6 +109,17 @@ const AdministrationPayments: React.FC = () => {
 
   const total = useMemo(() => items.reduce((acc, it) => acc + (Number(it.value) || 0), 0), [items]);
   const formatter = new Intl.NumberFormat('es-CO');
+
+  const handlePrint = (it: Administration) => {
+    try {
+      const id = it?.id ? String(it.id) : '';
+      const params = new URLSearchParams();
+      if (id) params.set('id', id);
+      const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
+      const url = `${base}/absolute-print-administration${params.toString() ? `?${params.toString()}` : ''}`;
+      window.open(url, '_blank', 'noopener,noreferrer,width=600,height=600');
+    } catch {}
+  };
 
   return (
     <Box maxWidth={900} mx="auto" p={1}>
@@ -226,13 +238,22 @@ const AdministrationPayments: React.FC = () => {
               <Stack spacing={0.5}>
                 {items.map((it) => (
                   <Box key={it.id} className="rounded border border-gray-200 px-3 py-2 bg-white">
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
-                      <Typography variant="body2"><strong>Fecha:</strong> {it.date}</Typography>
-                      <Typography variant="body2"><strong>Valor:</strong> ${formatter.format(Number(it.value) || 0)}</Typography>
-                      <Typography variant="body2"><strong>Pagador:</strong> {it.payer}</Typography>
-                      {it.vehicle?.plate && (
-                        <Typography variant="body2"><strong>Placa:</strong> {it.vehicle.plate}</Typography>
-                      )}
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} flex={1}>
+                        <Typography variant="body2"><strong>Fecha:</strong> {it.date}</Typography>
+                        <Typography variant="body2"><strong>Valor:</strong> ${formatter.format(Number(it.value) || 0)}</Typography>
+                        <Typography variant="body2"><strong>Pagador:</strong> {it.payer}</Typography>
+                        {it.vehicle?.plate && (
+                          <Typography variant="body2"><strong>Placa:</strong> {it.vehicle.plate}</Typography>
+                        )}
+                      </Stack>
+                      <Tooltip title="Imprimir registro">
+                        <span>
+                          <IconButton color="primary" size="small" onClick={() => handlePrint(it)}>
+                            <PrintIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </Stack>
                     {it.detail && (
                       <Typography variant="body2" color="text.secondary">{it.detail}</Typography>

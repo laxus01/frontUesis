@@ -16,6 +16,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     'flex items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-100';
   const linkActive = 'bg-blue-50 text-blue-700 font-medium';
   const [reportsOpen, setReportsOpen] = useState<boolean>(false);
+  const [adminOpen, setAdminOpen] = useState<boolean>(false);
+  const [controlOpen, setControlOpen] = useState<boolean>(false);
 
   return (
     <nav className="h-full w-full bg-white border-r border-gray-200" aria-label="Menú principal">
@@ -53,36 +55,84 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           </NavLink>
         </li>
         <li>
-          <NavLink
-            to="/control-sheet"
-            onClick={onItemClick}
-            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          <button
+            type="button"
+            onClick={() => setControlOpen(v => !v)}
+            className={`${linkBase} w-full justify-between`}
+            aria-expanded={controlOpen}
+            aria-controls="submenu-control-card"
           >
-            <span className="material-symbols-outlined text-base">description</span>
-            <span>Planilla de Control</span>
-          </NavLink>
+            <span className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">description</span>
+              <span>Tarjeta de control</span>
+            </span>
+            {controlOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </button>
+          {controlOpen && (
+            <ul id="submenu-control-card" className="mt-1 ml-6 space-y-1">
+              <li>
+                <NavLink
+                  to="/control-sheet"
+                  onClick={onItemClick}
+                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                >
+                  <span className="material-symbols-outlined text-base">add</span>
+                  <span>Registrar Tarjeta Control</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/print-control-card"
+                  onClick={onItemClick}
+                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                >
+                  <span className="material-symbols-outlined text-base">print</span>
+                  <span>Imprimir Tarjeta Control</span>
+                </NavLink>
+              </li>
+            </ul>
+          )}
         </li>
         <li>
-          <NavLink
-            to="/print-control-card"
-            onClick={onItemClick}
-            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          <button
+            type="button"
+            onClick={() => setAdminOpen(v => !v)}
+            className={`${linkBase} w-full justify-between`}
+            aria-expanded={adminOpen}
+            aria-controls="submenu-admin"
           >
-            <span className="material-symbols-outlined text-base">print</span>
-            <span>Imprimir tarjeta control</span>
-          </NavLink>
+            <span className="flex items-center gap-2">
+              <AdminPanelSettingsIcon color="inherit" sx={{ fontSize: 18 }} />
+              <span>Administración</span>
+            </span>
+            {adminOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </button>
+          {adminOpen && (
+            <ul id="submenu-admin" className="mt-1 ml-6 space-y-1">
+              <li>
+                <NavLink
+                  to="/administration"
+                  onClick={onItemClick}
+                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                >
+                  <span className="material-symbols-outlined text-base">add_card</span>
+                  <span>Generar pago</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/reports/administration-payments"
+                  onClick={onItemClick}
+                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                >
+                  <span className="material-symbols-outlined text-base">payments</span>
+                  <span>Consultar pagos</span>
+                </NavLink>
+              </li>
+            </ul>
+          )}
         </li>
-        <li>
-          <NavLink
-            to="/administration"
-            onClick={onItemClick}
-            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-          >
-            <AdminPanelSettingsIcon color="inherit" sx={{ fontSize: 18 }} />
-            <span>Administración</span>
-          </NavLink>
-        </li>
-        <li>
+        {/* <li>
           <button
             type="button"
             onClick={() => setReportsOpen(v => !v)}
@@ -110,7 +160,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               </li>
             </ul>
           )}
-        </li>
+        </li> */}
         
       </ul>
     </nav>
