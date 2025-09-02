@@ -1,0 +1,11 @@
+/* Estilos de App */
+
+/* Azul consistente con Login.tsx */
+.app-navbar {
+  background: #0d6efd !important;
+}
+
+/* Empuja el grupo de navegación a la derecha */
+.navbar-right {
+  margin-left: auto;
+}
