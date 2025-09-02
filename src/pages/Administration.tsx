@@ -71,9 +71,9 @@ const AdministrationForm: React.FC = () => {
 
   const canSubmit = useMemo(() => {
     return (
-      !!date && !!selectedVehicleId && selectedVehicleId > 0 && String(value).trim() !== '' && !!detail.trim() && !!payer.trim()
+      !!selectedVehicleId && selectedVehicleId > 0 && String(value).trim() !== '' && !!detail.trim() && !!payer.trim()
     );
-  }, [date, selectedVehicleId, value, detail, payer]);
+  }, [selectedVehicleId, value, detail, payer]);
 
   // Formatea solo enteros con separador de miles (es-CO). No permite decimales
   const formatMoneyInput = (input: string): string => {
@@ -96,13 +96,22 @@ const AdministrationForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const payload = {
+    const payload: any = {
       date: date ? date.format('YYYY-MM-DD') : null,
       value: moneyToInteger(value),
       detail: detail.trim(),
       payer: payer.trim(),
       vehicleId: selectedVehicleId,
     };
+    // Append current user id if available
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const userObj = JSON.parse(userStr);
+        const uid = userObj?.user?.id;
+        if (uid != null) payload.userId = Number(uid);
+      }
+    } catch {}
     try {
       setSubmitting(true);
       const res = await api.post('/administrations', payload);
@@ -139,7 +148,7 @@ const AdministrationForm: React.FC = () => {
                 value={date}
                 onChange={(v) => setDate(v)}
                 format="YYYY-MM-DD"
-                slotProps={{ textField: { size: 'small', fullWidth: true, required: true } }}
+                slotProps={{ textField: { size: 'small', fullWidth: true } }}
               />
             </LocalizationProvider>
           </Box>
