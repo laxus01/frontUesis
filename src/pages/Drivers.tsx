@@ -28,7 +28,8 @@ import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
 import AccountCircle from '@mui/icons-material/AccountCircle';
-import PhotoCamera from '@mui/icons-material/PhotoCamera';
+import CameraAlt from '@mui/icons-material/CameraAlt';
+import ImageIcon from '@mui/icons-material/Image';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import CatalogService, { Option } from '../services/catalog.service';
 import UploadService from '../services/upload.service';
@@ -51,6 +52,22 @@ function PhotoUploader({ photo, photoFilename, disabled, onChange }: PhotoUpload
   const { success, error } = useNotify();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [openCam, setOpenCam] = useState(false);
+  const [startingCam, setStartingCam] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const streamRef = React.useRef<MediaStream | null>(null);
+  React.useEffect(() => {
+    if (openCam) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [openCam]);
 
   const handleUpload = async (f: File) => {
     setUploading(true);
@@ -82,6 +99,58 @@ function PhotoUploader({ photo, photoFilename, disabled, onChange }: PhotoUpload
     }
   };
 
+  const stopCamera = () => {
+    const s = streamRef.current;
+    if (s) {
+      s.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const startCamera = async () => {
+    setStartingCam(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (e: any) {
+      const msg = e?.message || 'No se pudo acceder a la cámara';
+      error(String(msg));
+      setOpenCam(false);
+    } finally {
+      setStartingCam(false);
+    }
+  };
+
+  const handleCapture = async () => {
+    if (!videoRef.current) return;
+    setCapturing(true);
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current || document.createElement('canvas');
+      const w = video.videoWidth || 640;
+      const h = video.videoHeight || 480;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('No se pudo obtener el contexto del lienzo');
+      ctx.drawImage(video, 0, 0, w, h);
+      const blob: Blob = await new Promise((resolve) => canvas.toBlob(b => resolve(b as Blob), 'image/jpeg', 0.9));
+      const file = new File([blob], `captura_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      await handleUpload(file);
+      setOpenCam(false);
+    } catch (e: any) {
+      const msg = e?.message || 'No se pudo capturar la foto';
+      error(String(msg));
+    } finally {
+      stopCamera();
+      setCapturing(false);
+    }
+  };
+
   return (
     <Box display="flex" justifyContent="center">
       <Box sx={{ position: 'relative', display: 'inline-block' }}>
@@ -96,6 +165,20 @@ function PhotoUploader({ photo, photoFilename, disabled, onChange }: PhotoUpload
           <AccountCircle sx={{ fontSize: 160, color: 'action.disabled' }} />
         )}
         <Box sx={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 'calc(100% + 10px)', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Tooltip title="Tomar foto">
+            <span>
+              <IconButton
+                color="primary"
+                size="small"
+                onClick={() => { if (!disabled && !uploading) { setOpenCam(true); } }}
+                disabled={disabled || uploading}
+                sx={{ bgcolor: 'background.paper', boxShadow: 1 }}
+                aria-label="Tomar foto"
+              >
+                <CameraAlt fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
           <Tooltip title="Seleccionar foto">
             <span>
               <IconButton
@@ -106,7 +189,7 @@ function PhotoUploader({ photo, photoFilename, disabled, onChange }: PhotoUpload
                 sx={{ bgcolor: 'background.paper', boxShadow: 1 }}
                 aria-label="Seleccionar foto"
               >
-                <PhotoCamera fontSize="small" />
+                <ImageIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
@@ -132,6 +215,7 @@ function PhotoUploader({ photo, photoFilename, disabled, onChange }: PhotoUpload
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        capture
         hidden
         onChange={async (e) => {
           const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
@@ -140,6 +224,26 @@ function PhotoUploader({ photo, photoFilename, disabled, onChange }: PhotoUpload
           if (e.currentTarget) e.currentTarget.value = '';
         }}
       />
+      <Dialog
+        open={openCam}
+        onClose={() => { if (!startingCam && !capturing) { setOpenCam(false); stopCamera(); } }}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Tomar foto</DialogTitle>
+        <DialogContent>
+          <Box sx={{ position: 'relative', width: '100%' }}>
+            <video ref={videoRef} style={{ width: '100%', borderRadius: 8 }} playsInline autoPlay muted />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setOpenCam(false); stopCamera(); }} disabled={startingCam || capturing}>Cerrar</Button>
+          <Button variant="contained" onClick={handleCapture} disabled={startingCam || capturing}>
+            {capturing ? 'Capturando...' : 'Capturar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
