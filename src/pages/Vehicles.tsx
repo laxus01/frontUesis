@@ -299,13 +299,12 @@ export default function Vehicles(): JSX.Element {
       plate.trim().length > 0 &&
       model.trim().length > 0 &&
       internalNumber.trim().length > 0 &&
-      mobileNumber.trim().length > 0 &&
       makeId > 0 &&
       insurerId > 0 &&
       communicationCompanyId > 0 &&
       ownerId > 0
     );
-  }, [plate, model, internalNumber, mobileNumber, makeId, insurerId, communicationCompanyId, ownerId]);
+  }, [plate, model, internalNumber, makeId, insurerId, communicationCompanyId, ownerId]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -481,7 +480,6 @@ export default function Vehicles(): JSX.Element {
                     value={mobileNumber}
                     onChange={e => setMobileNumber(e.target.value)}
                     disabled={loading || submitting}
-                    required
                   />
                 </Box>
               </Stack>
