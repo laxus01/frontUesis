@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const [reportsOpen, setReportsOpen] = useState<boolean>(false);
   const [adminOpen, setAdminOpen] = useState<boolean>(false);
   const [controlOpen, setControlOpen] = useState<boolean>(false);
+  const [documentsOpen, setDocumentsOpen] = useState<boolean>(false);
 
   return (
     <nav className="h-full w-full bg-white border-r border-gray-200" aria-label="Menú principal">
@@ -131,37 +132,36 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               </li>
             </ul>
           )}
-        </li>
-        {/* <li>
+        </li>     
+        <li>
           <button
             type="button"
-            onClick={() => setReportsOpen(v => !v)}
+            onClick={() => setDocumentsOpen(v => !v)}
             className={`${linkBase} w-full justify-between`}
-            aria-expanded={reportsOpen}
-            aria-controls="submenu-reports"
+            aria-expanded={documentsOpen}
+            aria-controls="submenu-documents"
           >
             <span className="flex items-center gap-2">
-              <AssessmentIcon color="inherit" sx={{ fontSize: 18 }} />
-              <span>Informes</span>
+              <span className="material-symbols-outlined text-base">folder</span>
+              <span>Documentos</span>
             </span>
-            {reportsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            {documentsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
           </button>
-          {reportsOpen && (
-            <ul id="submenu-reports" className="mt-1 ml-6 space-y-1">
+          {documentsOpen && (
+            <ul id="submenu-documents" className="mt-1 ml-6 space-y-1">
               <li>
                 <NavLink
-                  to="/reports/administration-payments"
+                  to="/documents"
                   onClick={onItemClick}
                   className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
                 >
-                  <span className="material-symbols-outlined text-base">payments</span>
-                  <span>Pagos de Administración</span>
+                  <span className="material-symbols-outlined text-base">list</span>
+                  <span>Certificación Ingresos</span>
                 </NavLink>
               </li>
             </ul>
           )}
-        </li> */}
-        
+        </li>   
       </ul>
     </nav>
   );
