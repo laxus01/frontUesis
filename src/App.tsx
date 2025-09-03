@@ -13,6 +13,7 @@ import AbsolutePrintCard from './pages/AbsolutePrintCard';
 import AbsoluteAdministrationPaymentPrint from './pages/AbsoluteAdministrationPaymentPrint';
 import Administration from './pages/Administration';
 import AdministrationPayments from './pages/AdministrationPayments';
+import IncomeCertificate from './pages/IncomeCertificate';
 
 function App(): JSX.Element {
   const [currentUser, setCurrentUser] = useState<any>(undefined);
@@ -130,6 +131,7 @@ function App(): JSX.Element {
                 <Route path="/absolute-print-administration" element={<AbsoluteAdministrationPaymentPrint />} />
                 <Route path="/administration" element={<Administration />} />
                 <Route path="/reports/administration-payments" element={<AdministrationPayments />} />
+                <Route path="/documents" element={<IncomeCertificate />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </section>
