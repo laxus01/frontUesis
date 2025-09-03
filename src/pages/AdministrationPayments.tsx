@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Autocomplete, Box, Button, Card, CardContent, CircularProgress, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PrintIcon from '@mui/icons-material/Print';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
@@ -150,26 +149,22 @@ const AdministrationPayments: React.FC = () => {
               {mode === 'date' ? (
                 <>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <DatePicker
-                        label="Fecha inicial"
-                        value={startDate}
-                        onChange={(v) => setStartDate(v)}
-                        format="YYYY-MM-DD"
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
-                    </LocalizationProvider>
+                    <DatePicker
+                      label="Fecha inicial"
+                      value={startDate}
+                      onChange={(v) => setStartDate(v)}
+                      format="YYYY-MM-DD"
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <DatePicker
-                        label="Fecha final"
-                        value={endDate}
-                        onChange={(v) => setEndDate(v)}
-                        format="YYYY-MM-DD"
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
-                    </LocalizationProvider>
+                    <DatePicker
+                      label="Fecha final"
+                      value={endDate}
+                      onChange={(v) => setEndDate(v)}
+                      format="YYYY-MM-DD"
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                 </>
               ) : (

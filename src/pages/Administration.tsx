@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Autocomplete, Box, Button, Card, CardContent, CircularProgress, InputAdornment, Stack, TextField, Typography } from '@mui/material';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import api from '../services/http';
@@ -142,15 +141,13 @@ const AdministrationForm: React.FC = () => {
       <Stack spacing={2}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Box sx={{ flex: 1 }}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="Fecha"
-                value={date}
-                onChange={(v) => setDate(v)}
-                format="YYYY-MM-DD"
-                slotProps={{ textField: { size: 'small', fullWidth: true } }}
-              />
-            </LocalizationProvider>
+            <DatePicker
+              label="Fecha"
+              value={date}
+              onChange={(v) => setDate(v)}
+              format="YYYY-MM-DD"
+              slotProps={{ textField: { size: 'small', fullWidth: true } }}
+            />
           </Box>
           <Box sx={{ flex: 1 }}>
             <Autocomplete

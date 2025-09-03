@@ -19,9 +19,7 @@ import {
   DialogActions,
   Autocomplete,
 } from '@mui/material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
@@ -409,7 +407,6 @@ export default function Drivers(): JSX.Element {
       firstName.trim().length > 0 &&
       lastName.trim().length > 0 &&
       phone.trim().length > 0 &&
-      address.trim().length > 0 &&
       license.trim().length > 0 &&
       category.trim().length > 0 &&
       !!expiresOn &&
@@ -418,20 +415,19 @@ export default function Drivers(): JSX.Element {
       epsId > 0 &&
       arlId > 0
     );
-  }, [identification, issuedIn, firstName, lastName, phone, address, license, category, expiresOn, bloodType, photo, epsId, arlId]);
+  }, [identification, issuedIn, firstName, lastName, phone, license, category, expiresOn, bloodType, photo, epsId, arlId]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: any = {
         identification: identification.trim(),
         issuedIn: issuedIn.trim(),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone.trim(),
-        address: address.trim(),
         license: license.trim(),
         category: category.trim(),
         // Format as YYYY-MM-DD for backend
@@ -441,6 +437,7 @@ export default function Drivers(): JSX.Element {
         epsId,
         arlId,
       };
+      if (address.trim()) payload.address = address.trim();
       let res;
       if (selectedDriverId > 0) {
         res = await api.put(`/drivers/${selectedDriverId}`, payload);
@@ -639,7 +636,6 @@ export default function Drivers(): JSX.Element {
                     fullWidth
                     value={address}
                     onChange={e => setAddress(e.target.value)}
-                    required
                     disabled={loading || submitting}
                   />
                 </Box>
@@ -677,22 +673,20 @@ export default function Drivers(): JSX.Element {
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Box sx={{ flex: 1 }}>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DatePicker
-                      label="Vence"
-                      value={expiresOn}
-                      onChange={(newValue) => setExpiresOn(newValue)}
-                      format="YYYY-MM-DD"
-                      slotProps={{
-                        textField: {
-                          size: 'small',
-                          fullWidth: true,
-                          required: true,
-                          disabled: disabledAll,
-                        },
-                      }}
-                    />
-                  </LocalizationProvider>
+                  <DatePicker
+                    label="Vence"
+                    value={expiresOn}
+                    onChange={(newValue) => setExpiresOn(newValue)}
+                    format="YYYY-MM-DD"
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true,
+                        required: true,
+                        disabled: disabledAll,
+                      },
+                    }}
+                  />
                 </Box>
                 <Box sx={{ flex: 1 }}>
                   <FormControl fullWidth size="small" disabled={disabledAll} required>

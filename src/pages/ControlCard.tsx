@@ -18,9 +18,7 @@ import {
   DialogActions,
   Autocomplete,
 } from '@mui/material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 // import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
@@ -594,23 +592,21 @@ export default function ControlCard(): JSX.Element {
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <DatePicker
-                        label="Vence"
-                        value={expiresOn}
-                        onChange={(newValue) => setExpiresOn(newValue)}
-                        format="YYYY-MM-DD"
-                        disabled
-                        slotProps={{
-                          textField: {
-                            size: 'small',
-                            fullWidth: true,
-                            required: true,
-                            disabled: true,
-                          },
-                        }}
-                      />
-                    </LocalizationProvider>
+                    <DatePicker
+                      label="Vence"
+                      value={expiresOn}
+                      onChange={(newValue) => setExpiresOn(newValue)}
+                      format="YYYY-MM-DD"
+                      disabled
+                      slotProps={{
+                        textField: {
+                          size: 'small',
+                          fullWidth: true,
+                          required: true,
+                          disabled: true,
+                        },
+                      }}
+                    />
                   </Box>
                   <Box sx={{ flex: 1 }}>
                     <FormControl fullWidth size="small" disabled required>
@@ -853,15 +849,13 @@ export default function ControlCard(): JSX.Element {
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                      <DatePicker
-                        label="Vence"
-                        value={permitExpiresOn}
-                        onChange={(v) => setPermitExpiresOn(v)}
-                        format="YYYY-MM-DD"
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
-                    </LocalizationProvider>
+                    <DatePicker
+                      label="Vence"
+                      value={permitExpiresOn}
+                      onChange={(v) => setPermitExpiresOn(v)}
+                      format="YYYY-MM-DD"
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                   <Box sx={{ flex: 1 }}>
                     <TextField

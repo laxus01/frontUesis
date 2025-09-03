@@ -19,8 +19,7 @@ import {
   DialogActions,
   Autocomplete,
 } from '@mui/material';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
@@ -319,7 +318,7 @@ export default function Vehicles(): JSX.Element {
         makeId,
       };
       payload.internalNumber = internalNumber.trim();
-      payload.mobileNumber = mobileNumber.trim();
+      if (mobileNumber.trim()) payload.mobileNumber = mobileNumber.trim();
       payload.insurerId = insurerId;
       payload.communicationCompanyId = communicationCompanyId;
       payload.ownerId = ownerId;
@@ -519,16 +518,14 @@ export default function Vehicles(): JSX.Element {
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DatePicker
-                      label="Fecha de ingreso"
-                      value={entryDate}
-                      onChange={(v) => setEntryDate(v)}
-                      format="YYYY-MM-DD"
-                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      disabled={loading || submitting}
-                    />
-                  </LocalizationProvider>
+                  <DatePicker
+                    label="Fecha de ingreso"
+                    value={entryDate}
+                    onChange={(v) => setEntryDate(v)}
+                    format="YYYY-MM-DD"
+                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    disabled={loading || submitting}
+                  />
                 </Box>
               </Stack>
 
