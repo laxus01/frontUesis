@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Vehicles from './pages/Vehicles';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import { SnackbarProvider } from './components/SnackbarProvider';
+import { AuthData } from './types/auth';
 import Drivers from './pages/Drivers';
 import ControlCard from './pages/ControlCard';
 import PrintControlCard from './pages/PrintControlCard';
@@ -16,7 +17,7 @@ import AdministrationPayments from './pages/AdministrationPayments';
 import IncomeCertificate from './pages/IncomeCertificate';
 
 function App(): JSX.Element {
-  const [currentUser, setCurrentUser] = useState<any>(undefined);
+  const [currentUser, setCurrentUser] = useState<AuthData | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const isPrintOnly = location.pathname === '/absolute-print' || location.pathname === '/absolute-print-administration';
