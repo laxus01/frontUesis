@@ -881,7 +881,6 @@ export default function ControlCard(): JSX.Element {
                     />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
                       <DatePicker
                         label="Vence"
                         value={soatExpires}
@@ -889,7 +888,6 @@ export default function ControlCard(): JSX.Element {
                         format="YYYY-MM-DD"
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
-                    </LocalizationProvider>
                   </Box>
                 </Stack>
 
@@ -905,7 +903,6 @@ export default function ControlCard(): JSX.Element {
                     />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
                       <DatePicker
                         label="Vence"
                         value={operationCardExpires}
@@ -913,13 +910,11 @@ export default function ControlCard(): JSX.Element {
                         format="YYYY-MM-DD"
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
-                    </LocalizationProvider>
                   </Box>
                 </Stack>
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
                       <DatePicker
                         label="Contractual vence"
                         value={contractualExpires}
@@ -927,10 +922,8 @@ export default function ControlCard(): JSX.Element {
                         format="YYYY-MM-DD"
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
-                    </LocalizationProvider>
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
                       <DatePicker
                         label="Extracontractual vence"
                         value={extraContractualExpires}
@@ -938,13 +931,11 @@ export default function ControlCard(): JSX.Element {
                         format="YYYY-MM-DD"
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
-                    </LocalizationProvider>
                   </Box>
                 </Stack>
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
                       <DatePicker
                         label="Tecnomecánica vence"
                         value={technicalMechanicExpires}
@@ -952,7 +943,6 @@ export default function ControlCard(): JSX.Element {
                         format="YYYY-MM-DD"
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
-                    </LocalizationProvider>
                   </Box>
                   <Box sx={{ flex: 1 }} />
                 </Stack>
