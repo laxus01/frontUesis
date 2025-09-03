@@ -286,7 +286,7 @@ export default function PrintControlCard(): JSX.Element {
                       } catch {}
                     }}
                   >
-                    <PrintIcon fontSize="small" />
+                    <PrintIcon fontSize="small" color="primary" />
                   </IconButton>
                   <Stack spacing={1}>
                     <Typography variant="subtitle1" fontWeight={600}>Conductor</Typography>
