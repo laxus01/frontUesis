@@ -1,9 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Autocomplete, Box, Card, CardContent, CircularProgress, IconButton, Stack, TextField, Typography } from '@mui/material';
 import dayjs from 'dayjs';
-import api from '../services/http';
-import { useNotify } from '../services/notify';
+import api from '@/services/http';
+import { useNotify } from '@/services/notify';
 import PrintIcon from '@mui/icons-material/Print';
+
+const formatNumber = (value: string): string => {
+  if (!value) return '';
+  const numberValue = parseInt(value.replace(/[^0-9]/g, ''), 10);
+  if (isNaN(numberValue)) return '';
+  return numberValue.toLocaleString('es-CO');
+};
+
+const unformatNumber = (value: string): string => {
+  if (!value) return '';
+  return value.replace(/[^0-9]/g, '');
+};
 
 // Types
 interface DriverLite {
@@ -17,6 +29,14 @@ interface VehicleLite {
   id: number;
   plate: string;
   model?: string;
+}
+
+interface Person {
+  id: number;
+  identification: string;
+  firstName: string;
+  lastName: string;
+  name: string;
 }
 
 interface DriverVehicleRes {
@@ -35,41 +55,38 @@ interface DriverVehicleRes {
 }
 
 export default function PrintControlCard(): JSX.Element {
-  const { error } = useNotify();
-
-  // Driver autocomplete state
+    const { error } = useNotify();
+  const [selectedDriverId, setSelectedDriverId] = useState<number>(0);
+  
+  // Person search state
   const [idQuery, setIdQuery] = useState('');
-  const [idOptions, setIdOptions] = useState<string[]>([]);
-  const [idResults, setIdResults] = useState<DriverLite[]>([]);
+  const [idOptions, setIdOptions] = useState<Person[]>([]);
   const [idLoading, setIdLoading] = useState(false);
-  const [identification, setIdentification] = useState('');
-  const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<Person | null>(null);
 
-  // Vehicle autocomplete state
-  const [plateQuery, setPlateQuery] = useState('');
-  const [plateOptions, setPlateOptions] = useState<string[]>([]);
-  const [plateResults, setPlateResults] = useState<VehicleLite[]>([]);
-  const [plateLoading, setPlateLoading] = useState(false);
-  const [plate, setPlate] = useState('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const handlePersonSelection = (person: Person | null) => {
+    setSelectedDriver(person);
+    if (person) {
+      setSelectedDriverId(person.id);
+      setIdQuery(formatNumber(person.identification));
+    } else {
+      setSelectedDriverId(0);
+    }
+  };
 
-  // Results state
-  const [loadingResults, setLoadingResults] = useState(false);
-  const [results, setResults] = useState<DriverVehicleRes[]>([]);
-
-  // Debounced search drivers by identification
   useEffect(() => {
-    const q = idQuery.trim();
-    if (!q) { setIdOptions([]); return; }
+    const q = unformatNumber(idQuery);
+    if (!q) {
+      setIdOptions([]);
+      return;
+    }
     const handle = setTimeout(async () => {
       setIdLoading(true);
       try {
-        const res = await api.get<DriverLite[]>('/drivers', { params: { identification: q } });
-        const data = Array.isArray(res.data) ? res.data : [];
-        setIdResults(data);
-        const ids = Array.from(new Set(data.map(d => String(d.identification || '').trim()).filter(Boolean)));
-        setIdOptions(ids);
-      } catch (e: any) {
+        const res = await api.get<Person[]>('/drivers', { params: { identification: q } });
+        const data = (Array.isArray(res.data) ? res.data : []).map(p => ({ ...p, name: `${p.firstName} ${p.lastName}`.trim() }));
+        setIdOptions(data);
+      } catch {
         setIdOptions([]);
       } finally {
         setIdLoading(false);
@@ -77,6 +94,44 @@ export default function PrintControlCard(): JSX.Element {
     }, 300);
     return () => clearTimeout(handle);
   }, [idQuery]);
+
+
+  // Vehicle autocomplete state
+  const [plateQuery, setPlateQuery] = useState('');
+  const [plateOptions, setPlateOptions] = useState<string[]>([]);
+  const [plateResults, setPlateResults] = useState<VehicleLite[]>([]);
+  const [plateLoading, setPlateLoading] = useState(false);
+  const [plate, setPlate] = useState('');
+    const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+
+  const handlePlateChange = (newValue: string | null) => {
+    const val = (newValue || '').toUpperCase();
+    const found = plateResults.find((v) => String(v?.plate).trim().toUpperCase() === val.trim());
+    setPlate(val);
+    setSelectedVehicleId(found ? found.id : null);
+  };
+
+  const handlePlateInputChange = (newInput: string, reason: string) => {
+    const next = (newInput || '').toUpperCase();
+    setPlateQuery(next);
+    if (reason === 'input') {
+      setPlate(next);
+      setSelectedVehicleId(null);
+    }
+  };
+
+  const handlePlateBlur = () => {
+    const found = plateResults.find((v) => String(v?.plate).trim().toUpperCase() === plateQuery.trim());
+    if (found) {
+      setPlate(found.plate);
+      setSelectedVehicleId(found.id);
+    }
+  };
+
+  // Results state
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [results, setResults] = useState<DriverVehicleRes[]>([]);
+
 
   // Debounced search vehicles by plate
   useEffect(() => {
@@ -110,13 +165,13 @@ export default function PrintControlCard(): JSX.Element {
   // Fetch results when a filter is selected
   useEffect(() => {
     const fetchResults = async () => {
-      if (!selectedDriverId && !selectedVehicleId) { setResults([]); return; }
+            if (!selectedDriverId && !selectedVehicleId) { setResults([]); return; }
       setLoadingResults(true);
       try {
         let data: DriverVehicleRes[] = [];
         if (selectedDriverId && selectedVehicleId) {
           // Fetch by both and intersect on vehicle/driver id
-          const [byDriver, byVehicle] = await Promise.all([
+                    const [byDriver, byVehicle] = await Promise.all([
             api.get<DriverVehicleRes[]>(`/driver-vehicles/by-driver/${selectedDriverId}`),
             api.get<DriverVehicleRes[]>(`/driver-vehicles/by-vehicle/${selectedVehicleId}`),
           ]);
@@ -124,7 +179,7 @@ export default function PrintControlCard(): JSX.Element {
           const b = Array.isArray(byVehicle.data) ? byVehicle.data : [];
           const setB = new Set(b.map(x => `${x.driver?.id}-${x.vehicle?.id}`));
           data = a.filter(x => setB.has(`${x.driver?.id}-${x.vehicle?.id}`));
-        } else if (selectedDriverId) {
+                } else if (selectedDriverId) {
           const res = await api.get<DriverVehicleRes[]>(`/driver-vehicles/by-driver/${selectedDriverId}`);
           data = Array.isArray(res.data) ? res.data : [];
         } else if (selectedVehicleId) {
@@ -139,7 +194,7 @@ export default function PrintControlCard(): JSX.Element {
         setLoadingResults(false);
       }
     };
-    fetchResults();
+        fetchResults();
   }, [selectedDriverId, selectedVehicleId, error]);
 
   // (Se removieron botones de limpiar/imprimir por solicitud)
@@ -155,24 +210,17 @@ export default function PrintControlCard(): JSX.Element {
               <Box sx={{ flex: 1 }}>
                 <Autocomplete
                   options={idOptions}
-                  value={identification || null}
-                  onChange={(event, newValue) => {
-                    const val = (newValue || '').trim();
-                    setIdentification(val);
-                    if (val) {
-                      const found = idResults.find(d => String(d.identification).trim() === val);
-                      setSelectedDriverId(found ? Number(found.id) : null);
-                    } else {
-                      setSelectedDriverId(null);
+                  inputValue={idQuery}
+                  onInputChange={(event, newInputValue, reason) => {
+                    if (reason === 'input') {
+                      setIdQuery(newInputValue);
                     }
                   }}
-                  inputValue={idQuery}
-                  onInputChange={(e, newInput) => {
-                    const next = (newInput || '').trim();
-                    setIdQuery(next);
-                    setIdentification(next);
-                    setSelectedDriverId(null);
+                  onChange={(event, newValue) => {
+                    handlePersonSelection(newValue as Person | null);
                   }}
+                  getOptionLabel={(option) => typeof option === 'string' ? option : formatNumber((option as Person).identification)}
+                  isOptionEqualToValue={(option, value) => (option as Person).id === (value as Person).id}
                   loading={idLoading}
                   freeSolo
                   disablePortal
@@ -201,23 +249,10 @@ export default function PrintControlCard(): JSX.Element {
                 <Autocomplete
                   options={plateOptions}
                   value={plate || null}
-                  onChange={(event, newValue) => {
-                    const val = (newValue || '').toUpperCase();
-                    setPlate(val);
-                    if (val) {
-                      const found = plateResults.find(v => String((v as any).plate).trim().toUpperCase() === val);
-                      setSelectedVehicleId(found ? Number((found as any).id) : null);
-                    } else {
-                      setSelectedVehicleId(null);
-                    }
-                  }}
+                  onChange={(event, newValue) => handlePlateChange(newValue)}
                   inputValue={plateQuery}
-                  onInputChange={(e, newInput) => {
-                    const next = (newInput || '').toUpperCase();
-                    setPlateQuery(next);
-                    setPlate(next);
-                    setSelectedVehicleId(null);
-                  }}
+                  onInputChange={(e, newInput, reason) => handlePlateInputChange(newInput, reason)}
+                  onBlur={handlePlateBlur}
                   loading={plateLoading}
                   freeSolo
                   disablePortal
@@ -256,7 +291,7 @@ export default function PrintControlCard(): JSX.Element {
           {loadingResults && <CircularProgress size={18} />}
         </div>
 
-        {(!loadingResults && results.length === 0 && (selectedDriverId || selectedVehicleId)) && (
+                {(!loadingResults && results.length === 0 && (selectedDriverId || selectedVehicleId)) && (
           <Typography variant="body2" color="text.secondary">No hay resultados.</Typography>
         )}
 

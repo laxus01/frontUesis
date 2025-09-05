@@ -56,6 +56,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           </NavLink>
         </li>
         <li>
+          <NavLink
+            to="/owners"
+            onClick={onItemClick}
+            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          >
+            <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
+            <span>Propietarios</span>
+          </NavLink>
+        </li>
+        <li>
           <button
             type="button"
             onClick={() => setControlOpen(v => !v)}

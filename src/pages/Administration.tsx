@@ -29,7 +29,7 @@ const Administration: React.FC = () => {
 export default Administration;
 
 // --- Subcomponent: Formulario ---
-interface VehicleLite { id: number; plate: string; model?: string }
+interface VehicleLite { id: number; plate: string; model?: string; owner?: { identification: string; name: string; } }
 
 const AdministrationForm: React.FC = () => {
   const [date, setDate] = useState<Dayjs | null>(null);
@@ -46,8 +46,57 @@ const AdministrationForm: React.FC = () => {
   const [plateLoading, setPlateLoading] = useState<boolean>(false);
   const [plate, setPlate] = useState<string>('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [ownerIdentification, setOwnerIdentification] = useState<string>('');
+  const [ownerName, setOwnerName] = useState<string>('');
+
+  const clearVehicleForm = () => {
+    setSelectedVehicleId(null);
+    setOwnerIdentification('');
+    setOwnerName('');
+  };
+
+  const populateVehicleForm = (vehicle: VehicleLite) => {
+    if (!vehicle) return;
+    setPlate(String(vehicle.plate || ''));
+    setSelectedVehicleId(vehicle.id);
+    if (vehicle.owner) {
+      setOwnerIdentification(String(vehicle.owner.identification || ''));
+      setOwnerName(String(vehicle.owner.name || ''));
+    } else {
+      setOwnerIdentification('');
+      setOwnerName('');
+    }
+    setPlateQuery(String(vehicle.plate || ''));
+  };
 
   // Debounce simple para consulta de placas
+  const handlePlateChange = (_event: any, newValue: string | null) => {
+    const val = (newValue || '').toUpperCase();
+    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === val.trim());
+    if (found) {
+      populateVehicleForm(found);
+    } else {
+      setPlate(val);
+      clearVehicleForm();
+    }
+  };
+
+  const handlePlateInputChange = (_event: any, newInputValue: string, reason: string) => {
+    const next = (newInputValue || '').toUpperCase();
+    setPlateQuery(next);
+    if (reason === 'input') {
+      setPlate(next);
+      clearVehicleForm();
+    }
+  };
+
+  const handlePlateBlur = () => {
+    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === plateQuery.trim());
+    if (found) {
+      populateVehicleForm(found);
+    }
+  };
+
   useEffect(() => {
     const q = plateQuery.trim();
     if (!q) { setPlateOptions([]); return; }
@@ -134,6 +183,8 @@ const AdministrationForm: React.FC = () => {
     setValue('');
     setPayer('');
     setDetail('');
+    setOwnerIdentification('');
+    setOwnerName('');
   };
 
   return (
@@ -153,23 +204,10 @@ const AdministrationForm: React.FC = () => {
             <Autocomplete
               options={plateOptions}
               value={plate || null}
-              onChange={(event, newValue) => {
-                const val = (newValue || '').toUpperCase();
-                setPlate(val);
-                if (val) {
-                  const found = plateResults.find(v => String((v as any).plate).trim().toUpperCase() === val);
-                  setSelectedVehicleId(found ? Number((found as any).id) : null);
-                } else {
-                  setSelectedVehicleId(null);
-                }
-              }}
+              onChange={handlePlateChange}
               inputValue={plateQuery}
-              onInputChange={(e, newInput) => {
-                const next = (newInput || '').toUpperCase();
-                setPlateQuery(next);
-                setPlate(next);
-                setSelectedVehicleId(null);
-              }}
+              onInputChange={handlePlateInputChange}
+              onBlur={handlePlateBlur}
               loading={plateLoading}
               freeSolo
               disablePortal
@@ -192,6 +230,27 @@ const AdministrationForm: React.FC = () => {
                   required
                 />
               )}
+            />
+          </Box>
+        </Stack>
+
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Box sx={{ flex: 1 }}>
+            <TextField
+              label="Identificación Propietario"
+              size="small"
+              fullWidth
+              value={ownerIdentification}
+              disabled
+            />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <TextField
+              label="Nombre Propietario"
+              size="small"
+              fullWidth
+              value={ownerName}
+              disabled
             />
           </Box>
         </Stack>

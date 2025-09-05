@@ -6,6 +6,8 @@ import { DatePicker } from '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
+import { useOwners, OwnerLite } from '../hooks/useOwners';
+import { formatNumber } from '../utils/formatting';
 
 interface Vehicle { id: number; plate?: string }
 interface Administration {
@@ -19,27 +21,94 @@ interface Administration {
 
 const AdministrationPayments: React.FC = () => {
   // Modo: por rango de fechas o por vehículo
-  const [mode, setMode] = useState<'date' | 'vehicle'>('date');
+  const { success, error, warning } = useNotify();
+  const [mode, setMode] = useState<'date' | 'vehicle' | 'owner'>('date');
 
   // Estado común
   const [submitting, setSubmitting] = useState(false);
   const [items, setItems] = useState<Administration[]>([]);
-  const { success, error } = useNotify();
+  const [searchTitle, setSearchTitle] = useState<string>('');
 
   // Estado para modo fecha
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
 
   // Estado para modo vehículo (Autocomplete por placa)
-  interface VehicleLite { id: number; plate: string }
+  interface VehicleLite { id: number; plate: string; owner?: { id: number; identification: string; name: string; } }
   const [plateQuery, setPlateQuery] = useState<string>('');
   const [plateOptions, setPlateOptions] = useState<string[]>([]);
   const [plateResults, setPlateResults] = useState<VehicleLite[]>([]);
   const [plateLoading, setPlateLoading] = useState<boolean>(false);
   const [plate, setPlate] = useState<string>('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [ownerId, setOwnerId] = useState<string>('');
+  const [ownerName, setOwnerName] = useState<string>('');
+
+  // Estado para modo propietario (Autocomplete separado por identificación y nombre)
+  const [ownerIdQuery, setOwnerIdQuery] = useState('');
+  const [ownerIdOptions, setOwnerIdOptions] = useState<OwnerLite[]>([]);
+  const [ownerIdLoading, setOwnerIdLoading] = useState(false);
+  const [ownerNameQuery, setOwnerNameQuery] = useState('');
+  const [ownerNameOptions, setOwnerNameOptions] = useState<OwnerLite[]>([]);
+  const [ownerNameLoading, setOwnerNameLoading] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState<OwnerLite | null>(null);
+
+  const resetOwnerSearch = () => {
+    setOwnerIdQuery('');
+    setOwnerNameQuery('');
+    setSelectedOwner(null);
+    setOwnerIdOptions([]);
+    setOwnerNameOptions([]);
+  };
+
+  const handleOwnerSelection = (owner: OwnerLite | null) => {
+    setSelectedOwner(owner);
+    if (owner) {
+      setOwnerIdQuery(formatNumber(owner.identification));
+      setOwnerNameQuery(owner.name || '');
+    } else {
+      setOwnerIdQuery('');
+      setOwnerNameQuery('');
+    }
+  };
+
+  const populateVehicleForm = (vehicle: VehicleLite) => {
+    if (!vehicle) return;
+    setPlate(String(vehicle.plate || ''));
+    setSelectedVehicleId(vehicle.id);
+    setPlateQuery(String(vehicle.plate || ''));
+        setOwnerId(formatNumber(String(vehicle.owner?.identification || '')));
+    setOwnerName(String(vehicle.owner?.name || ''));
+  };
 
   // Autocomplete de placas (con debounce)
+  const handlePlateChange = (_event: any, newValue: string | null) => {
+    const val = (newValue || '').toUpperCase();
+    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === val.trim());
+    if (found) {
+      populateVehicleForm(found);
+    } else {
+      setPlate(val);
+      setSelectedVehicleId(null);
+    }
+  };
+
+  const handlePlateInputChange = (_event: any, newInputValue: string, reason: string) => {
+    const next = (newInputValue || '').toUpperCase();
+    setPlateQuery(next);
+    if (reason === 'input') {
+      setPlate(next);
+      setSelectedVehicleId(null);
+    }
+  };
+
+  const handlePlateBlur = () => {
+    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === plateQuery.trim());
+    if (found) {
+      populateVehicleForm(found);
+    }
+  };
+
   useEffect(() => {
     if (mode !== 'vehicle') return; // evita llamadas si no es el modo activo
     const q = (plateQuery || '').trim();
@@ -62,28 +131,86 @@ const AdministrationPayments: React.FC = () => {
     return () => clearTimeout(handle);
   }, [mode, plateQuery]);
 
+  // Búsqueda por identificación del propietario
+  useEffect(() => {
+    if (mode !== 'owner') return;
+    const q = ownerIdQuery.replace(/\./g, '');
+    if (!q) {
+      setOwnerIdOptions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      setOwnerIdLoading(true);
+      try {
+        const res = await api.get<OwnerLite[]>('/owner', { params: { identification: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setOwnerIdOptions(data);
+      } catch {
+        setOwnerIdOptions([]);
+      } finally {
+        setOwnerIdLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [mode, ownerIdQuery]);
+
+  // Búsqueda por nombre del propietario
+  useEffect(() => {
+    if (mode !== 'owner') return;
+    const q = ownerNameQuery.trim();
+    if (!q) {
+      setOwnerNameOptions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      setOwnerNameLoading(true);
+      try {
+        const res = await api.get<OwnerLite[]>('/owner', { params: { name: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setOwnerNameOptions(data);
+      } catch {
+        setOwnerNameOptions([]);
+      } finally {
+        setOwnerNameLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [mode, ownerNameQuery]);
+
+
   const canSubmit = useMemo(() => {
     if (mode === 'date') return !!startDate && !!endDate;
-    return !!selectedVehicleId && selectedVehicleId > 0;
-  }, [mode, startDate, endDate, selectedVehicleId]);
+    if (mode === 'vehicle') return !!selectedVehicleId && selectedVehicleId > 0;
+    if (mode === 'owner') return !!selectedOwner && selectedOwner.id > 0;
+    return false;
+  }, [mode, startDate, endDate, selectedVehicleId, selectedOwner]);
 
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
-      let res;
+      let res: any;
       if (mode === 'date') {
         if (!startDate || !endDate) return;
         const payload = {
           startDate: startDate.format('YYYY-MM-DD'),
           endDate: endDate.format('YYYY-MM-DD'),
         };
+        setSearchTitle(`Resultados para el rango de fechas: ${payload.startDate} - ${payload.endDate}`);
         res = await api.post<Administration[]>('/administrations/date-range', payload);
-      } else {
+      } else if (mode === 'vehicle') {
         if (!selectedVehicleId) return;
+        setSearchTitle(`Resultados para el vehículo con placa: ${plate}`);
         res = await api.post<Administration[]>('/administrations/vehicle', { vehicleId: selectedVehicleId });
+      } else if (mode === 'owner') {
+        if (!selectedOwner || !selectedOwner.id) return;
+        setSearchTitle(`Resultados para el propietario: ${selectedOwner.name}`);
+        res = await api.post<Administration[]>('/administrations/owner', { ownerId: selectedOwner.id });
       }
-      setItems(Array.isArray(res.data) ? res.data : []);
-      success('Consulta realizada');
+
+      if (res) {
+        setItems(Array.isArray(res.data) ? res.data : []);
+        success('Consulta realizada');
+      }
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Error al consultar';
       error(Array.isArray(msg) ? msg.join('\n') : String(msg));
@@ -94,15 +221,20 @@ const AdministrationPayments: React.FC = () => {
 
   const handleClear = () => {
     setItems([]);
+    setSearchTitle('');
     if (mode === 'date') {
       setStartDate(null);
       setEndDate(null);
-    } else {
+    } else if (mode === 'vehicle') {
       setPlate('');
       setPlateQuery('');
       setSelectedVehicleId(null);
       setPlateOptions([]);
       setPlateResults([]);
+      setOwnerId('');
+      setOwnerName('');
+    } else if (mode === 'owner') {
+      resetOwnerSearch();
     }
   };
 
@@ -143,9 +275,10 @@ const AdministrationPayments: React.FC = () => {
             >
               <ToggleButton value="date">Por fecha</ToggleButton>
               <ToggleButton value="vehicle">Por vehículo</ToggleButton>
+              <ToggleButton value="owner">Por propietario</ToggleButton>
             </ToggleButtonGroup>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
               {mode === 'date' ? (
                 <>
                   <Box sx={{ flex: 1 }}>
@@ -167,52 +300,123 @@ const AdministrationPayments: React.FC = () => {
                     />
                   </Box>
                 </>
+              ) : mode === 'vehicle' ? (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: '100%' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Autocomplete
+                      options={plateOptions}
+                      value={plate || null}
+                      onChange={handlePlateChange}
+                      inputValue={plateQuery}
+                      onInputChange={handlePlateInputChange}
+                      onBlur={handlePlateBlur}
+                      loading={plateLoading}
+                      disablePortal
+                      filterOptions={(x) => x}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Placa"
+                          size="small"
+                          fullWidth
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {plateLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                          required
+                        />
+                      )}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <TextField
+                      label="Id. Propietario"
+                      value={ownerId}
+                      fullWidth
+                      size="small"
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <TextField
+                      label="Nombre Propietario"
+                      value={ownerName}
+                      fullWidth
+                      size="small"
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                </Stack>
               ) : (
-                <Box sx={{ flex: 1 }}>
-                  <Autocomplete
-                    options={plateOptions}
-                    value={plate || null}
-                    onChange={(event, newValue) => {
-                      const val = (newValue || '').toUpperCase();
-                      setPlate(val);
-                      if (val) {
-                        const found = plateResults.find(v => String((v as any).plate).trim().toUpperCase() === val);
-                        setSelectedVehicleId(found ? Number((found as any).id) : null);
-                      } else {
-                        setSelectedVehicleId(null);
-                      }
-                    }}
-                    inputValue={plateQuery}
-                    onInputChange={(e, newInput) => {
-                      const next = (newInput || '').toUpperCase();
-                      setPlateQuery(next);
-                      setPlate(next);
-                      setSelectedVehicleId(null);
-                    }}
-                    loading={plateLoading}
-                    freeSolo
-                    disablePortal
-                    filterOptions={(x) => x}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Placa"
-                        size="small"
-                        fullWidth
-                        InputProps={{
-                          ...params.InputProps,
-                          endAdornment: (
-                            <>
-                              {plateLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                              {params.InputProps.endAdornment}
-                            </>
-                          ),
-                        }}
-                        required
-                      />
-                    )}
-                  />
-                </Box>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: '100%' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Autocomplete
+                      options={ownerIdOptions}
+                      getOptionLabel={(option) => option.identification ? formatNumber(option.identification) : ''}
+                      value={selectedOwner}
+                      onChange={(_event, newValue) => handleOwnerSelection(newValue)}
+                      inputValue={ownerIdQuery}
+                      onInputChange={(_event, newInputValue) => setOwnerIdQuery(newInputValue)}
+                      loading={ownerIdLoading}
+                      disablePortal
+                      filterOptions={(x) => x}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Buscar Identificación"
+                          size="small"
+                          fullWidth
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {ownerIdLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                          required
+                        />
+                      )}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Autocomplete
+                      options={ownerNameOptions}
+                      getOptionLabel={(option) => option.name || ''}
+                      value={selectedOwner}
+                      onChange={(_event, newValue) => handleOwnerSelection(newValue)}
+                      inputValue={ownerNameQuery}
+                      onInputChange={(_event, newInputValue) => setOwnerNameQuery(newInputValue)}
+                      loading={ownerNameLoading}
+                      disablePortal
+                      filterOptions={(x) => x}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Buscar Nombre"
+                          size="small"
+                          fullWidth
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {ownerNameLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                          required
+                        />
+                      )}
+                    />
+                  </Box>
+                </Stack>
               )}
             </Stack>
 
@@ -227,6 +431,11 @@ const AdministrationPayments: React.FC = () => {
 
             {/* Resultado simple */}
             <Box>
+              {searchTitle && (
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  {searchTitle}
+                </Typography>
+              )}
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Resultados: {items.length} registros · Total: ${formatter.format(total)}
               </Typography>

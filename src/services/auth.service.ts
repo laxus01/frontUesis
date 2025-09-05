@@ -1,7 +1,5 @@
-import axios from 'axios';
 import CatalogService from './catalog.service';
-
-const API_URL = 'https://backuesis-production.up.railway.app/auth/login';
+import api from './http';
 
 export interface LoginResponse {
   token?: string;
@@ -10,7 +8,7 @@ export interface LoginResponse {
 
 const login = async (user: string, password: string): Promise<LoginResponse> => {
   try {
-    const response = await axios.post<LoginResponse>(API_URL, {
+    const response = await api.post<LoginResponse>('/auth/login', {
       user,
       password,
     });

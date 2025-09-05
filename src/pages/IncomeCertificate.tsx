@@ -9,37 +9,98 @@ import {
   Typography,
   Autocomplete,
   InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
-import CatalogService, { Option } from '../services/catalog.service';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
 import { formatMoneyInput, moneyToInteger, numberToSpanishWords, toTitleCase } from '../utils/format';
-import WithOwnerDialogSelector from '../components/WithOwnerDialogSelector';
+import { formatNumber } from '../utils/formatting';
+import { OwnerLite } from '../hooks/useOwners';
 
 
 export default function IncomeCertificate(): JSX.Element {
   const { success, warning, error } = useNotify();
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [ownerId, setOwnerId] = useState<number>(0);
-  const [owners, setOwners] = useState<Option[]>([]);
   const [amount, setAmount] = useState<string>('');
-  const disabledAll = loading || submitting;
+  
+  // Owner search state (separated by identification and name)
+  const [ownerIdQuery, setOwnerIdQuery] = useState('');
+  const [ownerIdOptions, setOwnerIdOptions] = useState<OwnerLite[]>([]);
+  const [ownerIdLoading, setOwnerIdLoading] = useState(false);
+  const [ownerNameQuery, setOwnerNameQuery] = useState('');
+  const [ownerNameOptions, setOwnerNameOptions] = useState<OwnerLite[]>([]);
+  const [ownerNameLoading, setOwnerNameLoading] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState<OwnerLite | null>(null);
+  
+  const disabledAll = submitting;
 
-  useEffect(() => {
-    setLoading(true);
-    try {
-      const catalogs = CatalogService.getCatalogsFromStorage();
-      if (!catalogs) {
-        warning('Catálogos no disponibles. Inicia sesión para precargar los catálogos.');
-      } else {
-        setOwners(catalogs.owners);
-      }
-    } finally {
-      setLoading(false);
+  const resetOwnerSearch = () => {
+    setOwnerIdQuery('');
+    setOwnerNameQuery('');
+    setSelectedOwner(null);
+    setOwnerId(0);
+    setOwnerIdOptions([]);
+    setOwnerNameOptions([]);
+  };
+
+  const handleOwnerSelection = (owner: OwnerLite | null) => {
+    setSelectedOwner(owner);
+    if (owner) {
+      setOwnerId(owner.id);
+      setOwnerIdQuery(formatNumber(owner.identification));
+      setOwnerNameQuery(owner.name || '');
+    } else {
+      setOwnerId(0);
+      setOwnerIdQuery('');
+      setOwnerNameQuery('');
     }
-  }, []);
+  };
+
+  // Search by owner identification
+  useEffect(() => {
+    const q = ownerIdQuery.replace(/\./g, '');
+    if (!q) {
+      setOwnerIdOptions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      setOwnerIdLoading(true);
+      try {
+        const res = await api.get<OwnerLite[]>('/owner', { params: { identification: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setOwnerIdOptions(data);
+      } catch {
+        setOwnerIdOptions([]);
+      } finally {
+        setOwnerIdLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [ownerIdQuery]);
+
+  // Search by owner name
+  useEffect(() => {
+    const q = ownerNameQuery.trim();
+    if (!q) {
+      setOwnerNameOptions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      setOwnerNameLoading(true);
+      try {
+        const res = await api.get<OwnerLite[]>('/owner', { params: { name: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setOwnerNameOptions(data);
+      } catch {
+        setOwnerNameOptions([]);
+      } finally {
+        setOwnerNameLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [ownerNameQuery]);
 
 
 
@@ -98,13 +159,76 @@ export default function IncomeCertificate(): JSX.Element {
       <Card>
         <CardContent>
           <Stack spacing={2}>
-            <WithOwnerDialogSelector
-              value={ownerId}
-              options={owners}
-              onChange={(id) => setOwnerId(id)}
-              onCreate={async (payload) => { const created = await CatalogService.createOwner(payload); setOwners(prev => [...prev, created]); return created; }}
-              disabled={disabledAll}
-            />
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Propietario
+            </Typography>
+            
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box sx={{ flex: 1 }}>
+                <Autocomplete
+                  options={ownerIdOptions}
+                  getOptionLabel={(option) => option.identification ? formatNumber(option.identification) : ''}
+                  value={selectedOwner}
+                  onChange={(_event, newValue) => handleOwnerSelection(newValue)}
+                  inputValue={ownerIdQuery}
+                  onInputChange={(_event, newInputValue) => setOwnerIdQuery(newInputValue)}
+                  loading={ownerIdLoading}
+                  disabled={disabledAll}
+                  disablePortal
+                  filterOptions={(x) => x}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Buscar Identificación"
+                      size="small"
+                      fullWidth
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {ownerIdLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                      required
+                    />
+                  )}
+                />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Autocomplete
+                  options={ownerNameOptions}
+                  getOptionLabel={(option) => option.name || ''}
+                  value={selectedOwner}
+                  onChange={(_event, newValue) => handleOwnerSelection(newValue)}
+                  inputValue={ownerNameQuery}
+                  onInputChange={(_event, newInputValue) => setOwnerNameQuery(newInputValue)}
+                  loading={ownerNameLoading}
+                  disabled={disabledAll}
+                  disablePortal
+                  filterOptions={(x) => x}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Buscar Nombre"
+                      size="small"
+                      fullWidth
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {ownerNameLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                      required
+                    />
+                  )}
+                />
+              </Box>
+            </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box sx={{ flex: 1 }}>
@@ -123,7 +247,7 @@ export default function IncomeCertificate(): JSX.Element {
                   required
                 />
               </Box>
-              <Box sx={{ flex: 2 }}>
+              <Box sx={{ flex: 1 }}>
                 <TextField
                   label="Valor en letras"
                   size="small"
@@ -141,7 +265,7 @@ export default function IncomeCertificate(): JSX.Element {
               <Button
                 variant="outlined"
                 disabled={disabledAll}
-                onClick={() => { setOwnerId(0); setAmount(''); }}
+                onClick={() => { resetOwnerSearch(); setAmount(''); }}
               >
                 Limpiar
               </Button>

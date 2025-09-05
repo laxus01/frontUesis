@@ -26,7 +26,7 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import BusinessIcon from '@mui/icons-material/Business';
 import CellTowerIcon from '@mui/icons-material/CellTower';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import WithOwnerDialogSelector from '../components/WithOwnerDialogSelector';
+import { formatNumber } from '../utils/formatting';
 import CatalogService, { Option } from '../services/catalog.service';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
@@ -138,10 +138,82 @@ export default function Vehicles(): JSX.Element {
   const [communicationCompanyId, setCommunicationCompanyId] = useState<number>(0);
   const [ownerId, setOwnerId] = useState<number>(0);
 
+    // Person search state
+  const [idQuery, setIdQuery] = useState('');
+  const [idOptions, setIdOptions] = useState<any[]>([]);
+  const [idLoading, setIdLoading] = useState(false);
+  const [nameQuery, setNameQuery] = useState('');
+  const [nameOptions, setNameOptions] = useState<any[]>([]);
+  const [nameLoading, setNameLoading] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
+
+  const resetOwnerSearch = () => {
+    setIdQuery('');
+    setNameQuery('');
+    setSelectedOwner(null);
+    setOwnerId(0);
+    setIdOptions([]);
+    setNameOptions([]);
+  };
+
+  const handleOwnerSelection = (person: any | null) => {
+    setSelectedOwner(person);
+    if (person) {
+      setOwnerId(person.id);
+      setIdQuery(formatNumber(person.identification));
+      setNameQuery(person.name || '');
+    } else {
+      setOwnerId(0);
+      setIdQuery('');
+      setNameQuery('');
+    }
+  };
+
+  useEffect(() => {
+    const q = idQuery.replace(/\./g, '');
+    if (!q) {
+      setIdOptions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      setIdLoading(true);
+      try {
+        const res = await api.get<any[]>('/owner', { params: { identification: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setIdOptions(data);
+      } catch {
+        setIdOptions([]);
+      } finally {
+        setIdLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [idQuery]);
+
+  useEffect(() => {
+    const q = nameQuery.trim();
+    if (!q) {
+      setNameOptions([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      setNameLoading(true);
+      try {
+        const res = await api.get<any[]>('/owner', { params: { name: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setNameOptions(data);
+      } catch {
+        setNameOptions([]);
+      } finally {
+        setNameLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [nameQuery]);
+
   const [makes, setMakes] = useState<Option[]>([]);
   const [insurers, setInsurers] = useState<Option[]>([]);
   const [communicationCompanies, setCommunicationCompanies] = useState<Option[]>([]);
-  const [owners, setOwners] = useState<Option[]>([]);
 
   // Dialog states removed; handled inside subcomponents
 
@@ -160,7 +232,6 @@ export default function Vehicles(): JSX.Element {
         setMakes(catalogs.makes);
         setInsurers(catalogs.insurers);
         setCommunicationCompanies(catalogs.communicationCompanies);
-        setOwners(catalogs.owners);
       } finally {
         setLoading(false);
       }
@@ -205,6 +276,24 @@ export default function Vehicles(): JSX.Element {
     );
   }, [plate, model, internalNumber, makeId, insurerId, communicationCompanyId, ownerId]);
 
+  const onClear = () => {
+    setPlate('');
+    setModel('');
+    setInternalNumber('');
+    setMobileNumber('');
+    setEngineNumber('');
+    setChassisNumber('');
+    setLine('');
+    setEntryDate(null);
+    setMakeId(0);
+    setInsurerId(0);
+    setCommunicationCompanyId(0);
+    setOwnerId(0);
+    setSelectedVehicleId(0);
+    setPlateQuery('');
+    resetOwnerSearch();
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -231,25 +320,12 @@ export default function Vehicles(): JSX.Element {
       let res;
       if (selectedVehicleId > 0) {
         res = await api.put(`/vehicles/${selectedVehicleId}`, payload);
-        success('Vehículo actualizado con éxito (ID ' + (res.data?.id ?? selectedVehicleId) + ').');
+        success(`Vehículo actualizado con éxito (ID ${res.data?.id ?? selectedVehicleId}).`);
       } else {
         res = await api.post('/vehicles', payload);
-        success('Vehículo creado con éxito (ID ' + res.data?.id + ').');
-        // Reset solo en creación
-        setPlate('');
-        setModel('');
-        setInternalNumber('');
-        setMobileNumber('');
-        setEngineNumber('');
-        setChassisNumber('');
-        setLine('');
-        setEntryDate(null);
-        setMakeId(0);
-        setInsurerId(0);
-        setCommunicationCompanyId(0);
-        setOwnerId(0);
-        setSelectedVehicleId(0);
+        success(`Vehículo creado con éxito (ID ${res.data?.id}).`);
       }
+      onClear();
     } catch (e: any) {
       console.error('Error creating vehicle', e);
       const msg = e?.response?.data?.message || 'Error creando vehículo';
@@ -313,8 +389,8 @@ export default function Vehicles(): JSX.Element {
                           if (nextCommId > 0 && found?.communicationCompany?.name && !communicationCompanies.some(c => c.id === nextCommId)) {
                             setCommunicationCompanies(prev => [...prev, { id: nextCommId, name: String(found.communicationCompany.name) }]);
                           }
-                          if (nextOwnerId > 0 && found?.owner?.name && !owners.some(o => o.id === nextOwnerId)) {
-                            setOwners(prev => [...prev, { id: nextOwnerId, name: String(found.owner.name) }]);
+                          if (found?.owner) {
+                            handleOwnerSelection(found.owner);
                           }
                           setSelectedVehicleId(Number(found?.id || 0));
                         } else {
@@ -469,13 +545,43 @@ export default function Vehicles(): JSX.Element {
                     disabled={disabledAll}
                   />
                 </Box>
+              </Stack>
+
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+                Propietario
+              </Typography>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Box sx={{ flex: 1 }}>
-                  <WithOwnerDialogSelector
-                    value={ownerId}
-                    options={owners}
-                    onChange={(id) => setOwnerId(id)}
-                    onCreate={async (payload) => { const created = await CatalogService.createOwner(payload); setOwners(prev => [...prev, created]); return created; }}
+                  <Autocomplete
+                    options={idOptions}
+                    getOptionLabel={(option) => option.identification ? formatNumber(option.identification) : ''}
+                    value={selectedOwner}
+                    onChange={(_event, newValue) => handleOwnerSelection(newValue)}
+                    inputValue={idQuery}
+                    onInputChange={(_event, newInputValue) => setIdQuery(newInputValue)}
+                    loading={idLoading}
                     disabled={disabledAll}
+                    filterOptions={(x) => x} // Backend filtering
+                    renderInput={(params) => (
+                      <TextField {...params} label="Buscar Identificación" size="small" fullWidth required />
+                    )}
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Autocomplete
+                    options={nameOptions}
+                    getOptionLabel={(option) => option.name || ''}
+                    value={selectedOwner}
+                    onChange={(_event, newValue) => handleOwnerSelection(newValue)}
+                    inputValue={nameQuery}
+                    onInputChange={(_event, newInputValue) => setNameQuery(newInputValue)}
+                    loading={nameLoading}
+                    disabled={disabledAll}
+                    filterOptions={(x) => x} // Backend filtering
+                    renderInput={(params) => (
+                      <TextField {...params} label="Buscar Nombre" size="small" fullWidth required />
+                    )}
                   />
                 </Box>
               </Stack>
@@ -485,14 +591,7 @@ export default function Vehicles(): JSX.Element {
                   {submitting ? (selectedVehicleId > 0 ? 'Actualizando...' : 'Guardando...') : (selectedVehicleId > 0 ? 'Actualizar' : 'Guardar')}
                 </Button>
                 <Button type="button" variant="outlined" disabled={loading || submitting}
-                  onClick={() => {
-                    setPlate(''); setModel(''); setInternalNumber(''); setMobileNumber(''); setEngineNumber(''); setChassisNumber(''); setLine(''); setEntryDate(null);
-                    setMakeId(0);
-                    setInsurerId(0);
-                    setCommunicationCompanyId(0);
-                    setOwnerId(0);
-                    setSelectedVehicleId(0);
-                  }}
+                  onClick={onClear}
                 >
                   Limpiar
                 </Button>
@@ -501,7 +600,7 @@ export default function Vehicles(): JSX.Element {
           </Box>
         </CardContent>
       </Card>
-    {/* Diálogos integrados en subcomponentes */}
+      {/* Diálogos integrados en subcomponentes */}
     </Box>
   );
 }

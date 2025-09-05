@@ -15,6 +15,7 @@ import AbsoluteAdministrationPaymentPrint from './pages/AbsoluteAdministrationPa
 import Administration from './pages/Administration';
 import AdministrationPayments from './pages/AdministrationPayments';
 import IncomeCertificate from './pages/IncomeCertificate';
+import Owners from './pages/Owners';
 
 function App(): JSX.Element {
   const [currentUser, setCurrentUser] = useState<AuthData | undefined>(undefined);
@@ -133,6 +134,7 @@ function App(): JSX.Element {
                 <Route path="/administration" element={<Administration />} />
                 <Route path="/reports/administration-payments" element={<AdministrationPayments />} />
                 <Route path="/documents" element={<IncomeCertificate />} />
+                <Route path="/owners" element={<Owners />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </section>
