@@ -31,6 +31,7 @@ import CatalogService, { Option } from '../services/catalog.service';
 // import UploadService from '../services/upload.service';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
+import { formatNumber } from '../utils/formatting';
 
 // Simple accordion section component
 function AccordionSection({
@@ -215,11 +216,10 @@ export default function ControlCard(): JSX.Element {
   // Notifications
   const { warning, error, success } = useNotify();
 
-  // Drivers form state
+  // Driver search state - using individual states for read-only display
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState<number>(0);
-
   const [identification, setIdentification] = useState('');
   const [issuedIn, setIssuedIn] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -234,6 +234,11 @@ export default function ControlCard(): JSX.Element {
   const [photoFilename, setPhotoFilename] = useState('');
   const [epsId, setEpsId] = useState<number>(0);
   const [arlId, setArlId] = useState<number>(0);
+
+  // Driver search functionality
+  const [idQuery, setIdQuery] = useState('');
+  const [idOptions, setIdOptions] = useState<any[]>([]);
+  const [idLoading, setIdLoading] = useState(false);
 
   // Catalog data
   const [epsList, setEpsList] = useState<Option[]>([]);
@@ -274,22 +279,19 @@ export default function ControlCard(): JSX.Element {
 
   // Se removió envío y validación de formulario
 
-  // Realtime identification suggestions
-  const [idQuery, setIdQuery] = useState('');
-  const [idOptions, setIdOptions] = useState<string[]>([]);
-  const [idResults, setIdResults] = useState<any[]>([]);
-  const [idLoading, setIdLoading] = useState(false);
+  // Driver search effect
   useEffect(() => {
-    const q = idQuery.trim();
-    if (!q) { setIdOptions([]); return; }
+    const q = idQuery.trim().replace(/[,.]/g, '');
+    if (!q) {
+      setIdOptions([]);
+      return;
+    }
     const handle = setTimeout(async () => {
       setIdLoading(true);
       try {
         const res = await api.get<any[]>('/drivers', { params: { identification: q } });
         const data = Array.isArray(res.data) ? res.data : [];
-        setIdResults(data);
-        const ids = Array.from(new Set(data.map((d: any) => String(d?.identification || '').trim()).filter(Boolean)));
-        setIdOptions(ids);
+        setIdOptions(data.map(d => ({ ...d, name: `${d.firstName} ${d.lastName}`.trim() })));
       } catch {
         setIdOptions([]);
       } finally {
@@ -298,6 +300,33 @@ export default function ControlCard(): JSX.Element {
     }, 300);
     return () => clearTimeout(handle);
   }, [idQuery]);
+
+  const handleDriverSelection = (driver: any | null) => {
+    if (driver) {
+      setSelectedDriverId(driver.id);
+      setIdentification(formatNumber(driver.identification));
+      setIdQuery(formatNumber(driver.identification));
+      setIssuedIn(String(driver?.issuedIn || ''));
+      setFirstName(String(driver?.firstName || ''));
+      setLastName(String(driver?.lastName || ''));
+      setPhone(String(driver?.phone || ''));
+      setAddress(String(driver?.address || ''));
+      setLicense(formatNumber(String(driver?.license || '')));
+      setCategory(String(driver?.category || ''));
+      setBloodType(String(driver?.bloodType || ''));
+      try {
+        const dateStr = String(driver?.expiresOn || '').slice(0, 10);
+        setExpiresOn(dateStr ? dayjs(dateStr) : null);
+      } catch {
+        setExpiresOn(null);
+      }
+      setPhoto(String(driver?.photo || ''));
+      setEpsId(Number(driver?.epsId || 0));
+      setArlId(Number(driver?.arlId || 0));
+    } else {
+      setSelectedDriverId(0);
+    }
+  };
 
   // Vehicle: state and search by plate (read-only UI except plate autocomplete)
   const [plate, setPlate] = useState('');
@@ -308,6 +337,7 @@ export default function ControlCard(): JSX.Element {
   const [insurerId, setInsurerId] = useState<number>(0);
   const [communicationCompanyId, setCommunicationCompanyId] = useState<number>(0);
   const [ownerId, setOwnerId] = useState<number>(0);
+  const [ownerName, setOwnerName] = useState<string>('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<number>(0);
 
   const [plateQuery, setPlateQuery] = useState('');
@@ -335,7 +365,7 @@ export default function ControlCard(): JSX.Element {
   }, [plateQuery]);
 
   // Control Sheet (driver-vehicle) state
-  const [permitExpiresOn, setPermitExpiresOn] = useState<Dayjs | null>(null);
+  const [permitExpiresOn, setPermitExpiresOn] = useState<Dayjs | null>(dayjs().add(30, 'day'));
   const [note, setNote] = useState('');
   const [soat, setSoat] = useState('');
   const [soatExpires, setSoatExpires] = useState<Dayjs | null>(null);
@@ -395,6 +425,7 @@ export default function ControlCard(): JSX.Element {
       setExpiresOn(null);
       setBloodType('');
       setPhoto('');
+      setPhotoFilename('');
       setEpsId(0);
       setArlId(0);
 
@@ -409,6 +440,7 @@ export default function ControlCard(): JSX.Element {
       setInsurerId(0);
       setCommunicationCompanyId(0);
       setOwnerId(0);
+      setOwnerName('');
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'No se pudo guardar la tarjeta de control';
       error(Array.isArray(msg) ? msg.join('\n') : String(msg));
@@ -442,57 +474,18 @@ export default function ControlCard(): JSX.Element {
                   <Box sx={{ flex: 1 }}>
                     <Autocomplete
                       options={idOptions}
-                      value={identification || null}
-                      onChange={(event, newValue) => {
-                        const val = newValue || '';
-                        setIdentification(val);
-                        if (val) {
-                          const found = idResults.find((d) => String(d?.identification).trim() === val.trim());
-                          if (found) {
-                            setIssuedIn(String(found?.issuedIn || ''));
-                            setFirstName(String(found?.firstName || ''));
-                            setLastName(String(found?.lastName || ''));
-                            setPhone(String(found?.phone || ''));
-                            setAddress(String(found?.address || ''));
-                            setLicense(String(found?.license || ''));
-                            setCategory(String(found?.category || ''));
-                            setBloodType(String(found?.bloodType || ''));
-                            try {
-                              const dateStr = String(found?.expiresOn || '').slice(0, 10);
-                              setExpiresOn(dateStr ? dayjs(dateStr) : null);
-                            } catch {
-                              setExpiresOn(null);
-                            }
-                            setPhoto(String(found?.photo || ''));
-                            setEpsId(Number(found?.epsId || 0));
-                            setArlId(Number(found?.arlId || 0));
-                            setSelectedDriverId(Number(found?.id || 0));
-                          }
-                          else {
-                            setSelectedDriverId(0);
-                          }
-                        }
-                      }}
+                      getOptionLabel={(option) => formatNumber(option.identification)}
+                      filterOptions={(x) => x}
+                      value={idOptions.find(opt => opt.identification === identification.replace(/[,.]/g, '')) || null}
+                      onChange={(_event, newValue) => handleDriverSelection(newValue)}
                       inputValue={idQuery}
-                      onInputChange={(e, newInput) => {
-                        const next = newInput || '';
-                        setIdQuery(next);
-                        setIdentification(next);
-                        setSelectedDriverId(0);
+                      onInputChange={(_event, newInputValue) => {
+                        const digitsOnly = newInputValue.replace(/\D/g, '');
+                        setIdQuery(digitsOnly);
                       }}
                       loading={idLoading}
-                      freeSolo
-                      disablePortal
-                      filterOptions={(x) => x}
                       renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Identificación"
-                          size="small"
-                          fullWidth
-                          required
-                          disabled={false}
-                        />
+                        <TextField {...params} label="Buscar Identificación" size="small" fullWidth required disabled={false} />
                       )}
                       disabled={false}
                     />
@@ -597,6 +590,7 @@ export default function ControlCard(): JSX.Element {
                       value={expiresOn}
                       onChange={(newValue) => setExpiresOn(newValue)}
                       format="YYYY-MM-DD"
+                      minDate={dayjs()}
                       disabled
                       slotProps={{
                         textField: {
@@ -697,6 +691,7 @@ export default function ControlCard(): JSX.Element {
                             setInsurerId(Number(found?.insurer?.id || 0));
                             setCommunicationCompanyId(Number(found?.communicationCompany?.id || 0));
                             setOwnerId(Number(found?.owner?.id || 0));
+                            setOwnerName(String(found?.owner?.name || ''));
                             setSelectedVehicleId(Number(found?.id || 0));
                           }
                         }
@@ -813,20 +808,15 @@ export default function ControlCard(): JSX.Element {
                     </FormControl>
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <FormControl fullWidth size="small" disabled required>
-                      <InputLabel id="owner-select-label">Propietario</InputLabel>
-                      <Select
-                        labelId="owner-select-label"
-                        label="Propietario"
-                        value={ownerId}
-                        displayEmpty
-                        onChange={e => setOwnerId(Number(e.target.value))}
-                      >
-                        {owners.map(o => (
-                          <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <TextField
+                      label="Propietario"
+                      size="small"
+                      fullWidth
+                      value={ownerName}
+                      onChange={e => setOwnerName(e.target.value)}
+                      disabled
+                      required
+                    />
                   </Box>
                 </Stack>
               </Stack>
@@ -845,8 +835,6 @@ export default function ControlCard(): JSX.Element {
           <CardContent>
             <Box>
               <Stack spacing={2}>
-                
-
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
                     <DatePicker
@@ -854,6 +842,7 @@ export default function ControlCard(): JSX.Element {
                       value={permitExpiresOn}
                       onChange={(v) => setPermitExpiresOn(v)}
                       format="YYYY-MM-DD"
+                      minDate={dayjs()}
                       slotProps={{ textField: { size: 'small', fullWidth: true } }}
                     />
                   </Box>
@@ -869,10 +858,11 @@ export default function ControlCard(): JSX.Element {
                   </Box>
                 </Stack>
 
+                <label>SOAT</label>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
                     <TextField
-                      label="SOAT No"
+                      label="No"
                       size="small"
                       fullWidth
                       value={soat}
@@ -886,15 +876,17 @@ export default function ControlCard(): JSX.Element {
                         value={soatExpires}
                         onChange={(v) => setSoatExpires(v)}
                         format="YYYY-MM-DD"
+                        minDate={dayjs()}
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
                   </Box>
                 </Stack>
 
+                <label>TARJETA DE OPERACIÓN</label>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
                     <TextField
-                      label="Tarjeta Operación No"
+                      label="No"
                       size="small"
                       fullWidth
                       value={operationCard}
@@ -908,11 +900,13 @@ export default function ControlCard(): JSX.Element {
                         value={operationCardExpires}
                         onChange={(v) => setOperationCardExpires(v)}
                         format="YYYY-MM-DD"
+                        minDate={dayjs()}
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
                   </Box>
                 </Stack>
 
+                <label>OTROS DOCUMENTOS</label>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
                       <DatePicker
@@ -920,6 +914,7 @@ export default function ControlCard(): JSX.Element {
                         value={contractualExpires}
                         onChange={(v) => setContractualExpires(v)}
                         format="YYYY-MM-DD"
+                        minDate={dayjs()}
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
                   </Box>
@@ -929,22 +924,20 @@ export default function ControlCard(): JSX.Element {
                         value={extraContractualExpires}
                         onChange={(v) => setExtraContractualExpires(v)}
                         format="YYYY-MM-DD"
+                        minDate={dayjs()}
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
                   </Box>
-                </Stack>
-
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
                       <DatePicker
                         label="Tecnomecánica vence"
                         value={technicalMechanicExpires}
                         onChange={(v) => setTechnicalMechanicExpires(v)}
                         format="YYYY-MM-DD"
+                        minDate={dayjs()}
                         slotProps={{ textField: { size: 'small', fullWidth: true } }}
                       />
                   </Box>
-                  <Box sx={{ flex: 1 }} />
                 </Stack>
 
                 <Stack direction="row" justifyContent="flex-start">

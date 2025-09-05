@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Autocomplete, Box, Card, CardContent, CircularProgress, IconButton, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Autocomplete, Box, Card, CardContent, CircularProgress, IconButton, Stack, TextField, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 import api from '@/services/http';
 import { useNotify } from '@/services/notify';
 import PrintIcon from '@mui/icons-material/Print';
+import WarningIcon from '@mui/icons-material/Warning';
 
 const formatNumber = (value: string): string => {
   if (!value) return '';
@@ -52,6 +53,12 @@ interface DriverVehicleRes {
   technicalMechanicExpires?: string | null;
   driver?: any;
   vehicle?: any;
+}
+
+interface ExpiredDocument {
+  name: string;
+  date: string;
+  daysExpired: number;
 }
 
 export default function PrintControlCard(): JSX.Element {
@@ -131,6 +138,40 @@ export default function PrintControlCard(): JSX.Element {
   // Results state
   const [loadingResults, setLoadingResults] = useState(false);
   const [results, setResults] = useState<DriverVehicleRes[]>([]);
+
+  // Function to check for expired documents
+  const getExpiredDocuments = (item: DriverVehicleRes): ExpiredDocument[] => {
+    const today = dayjs();
+    const expired: ExpiredDocument[] = [];
+    
+    const checkDate = (date: string | null | undefined, name: string) => {
+      if (date) {
+        const expDate = dayjs(String(date).slice(0, 10));
+        if (expDate.isBefore(today, 'day')) {
+          expired.push({
+            name,
+            date: expDate.format('YYYY-MM-DD'),
+            daysExpired: today.diff(expDate, 'day')
+          });
+        }
+      }
+    };
+
+    // Check driver license expiration
+    if (item.driver?.expiresOn) {
+      checkDate(item.driver.expiresOn, 'Licencia de conducir');
+    }
+    
+    // Check all document expiration dates
+    checkDate(item.permitExpiresOn, 'Permiso');
+    checkDate(item.technicalMechanicExpires, 'Tecnomecánica');
+    checkDate(item.extraContractualExpires, 'Extracontractual');
+    checkDate(item.contractualExpires, 'Contractual');
+    checkDate(item.operationCardExpires, 'Tarjeta de operación');
+    checkDate(item.soatExpires, 'SOAT');
+    
+    return expired.sort((a, b) => b.daysExpired - a.daysExpired);
+  };
 
 
   // Debounced search vehicles by plate
@@ -301,29 +342,50 @@ export default function PrintControlCard(): JSX.Element {
             const v = item.vehicle || {};
             const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ');
             const fmt = (s?: string | null) => s ? dayjs(String(s).slice(0,10)).format('YYYY-MM-DD') : '';
+            const expiredDocs = getExpiredDocuments(item);
+            
             return (
               <Card key={item.id} className="relative print:break-inside-avoid">
                 <CardContent>
-                  <IconButton
-                    size="small"
-                    className="!absolute top-2 right-2"
-                    aria-label="Imprimir tarjeta"
-                    title="Imprimir tarjeta"
-                    onClick={() => {
-                      // Solo enviar el id del registro drivers_vehicles (dvId) en la URL
-                      const dvId = item?.id ? String(item.id) : '';
-                      const params = new URLSearchParams();
-                      if (dvId) params.set('dvId', dvId);
-                      const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
-                      const url = `${base}/absolute-print${params.toString() ? `?${params.toString()}` : ''}`;
-                      try {
-                        window.open(url, '_blank', 'noopener,noreferrer,width=1200,height=700');
-                      } catch {}
-                    }}
-                  >
-                    <PrintIcon fontSize="small" color="primary" />
-                  </IconButton>
+                  {expiredDocs.length === 0 && (
+                    <IconButton
+                      size="small"
+                      className="!absolute top-2 right-2"
+                      aria-label="Imprimir tarjeta"
+                      title="Imprimir tarjeta"
+                      onClick={() => {
+                        // Solo enviar el id del registro drivers_vehicles (dvId) en la URL
+                        const dvId = item?.id ? String(item.id) : '';
+                        const params = new URLSearchParams();
+                        if (dvId) params.set('dvId', dvId);
+                        const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
+                        const url = `${base}/absolute-print${params.toString() ? `?${params.toString()}` : ''}`;
+                        try {
+                          window.open(url, '_blank', 'noopener,noreferrer,width=1200,height=700');
+                        } catch {}
+                      }}
+                    >
+                      <PrintIcon fontSize="small" color="primary" />
+                    </IconButton>
+                  )}
+                  
                   <Stack spacing={1}>
+                    {/* Expired Documents Alert */}
+                    {expiredDocs.length > 0 && (
+                      <Alert 
+                        severity="error" 
+                        icon={<WarningIcon fontSize="inherit" />}
+                        sx={{ mb: 1 }}
+                      >
+                        <Typography variant="body2" fontWeight={600}>Documentos vencidos:</Typography>
+                        {expiredDocs.map((doc, index) => (
+                          <Typography key={index} variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            • {doc.name}: {doc.date} ({doc.daysExpired} días vencido{doc.daysExpired !== 1 ? 's' : ''})
+                          </Typography>
+                        ))}
+                      </Alert>
+                    )}
+                    
                     <Typography variant="subtitle1" fontWeight={600}>Conductor</Typography>
                     <Typography variant="body2">{fullName || '—'}</Typography>
                     <Typography variant="body2">ID: {d.identification || '—'}</Typography>
