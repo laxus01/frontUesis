@@ -33,6 +33,8 @@ import CatalogService, { Option } from '../services/catalog.service';
 import UploadService from '../services/upload.service';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
+import { formatNumber } from '../utils/formatting';
+import { useDrivers } from '../hooks/useDrivers';
 
 // Constants
 const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
@@ -345,156 +347,56 @@ type VehicleSelectProps = {
 // Vehicle selection removed
 
 export default function Drivers(): JSX.Element {
-  const { success, warning, error } = useNotify();
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [selectedDriverId, setSelectedDriverId] = useState<number>(0);
-
-  // Form fields
-  const [identification, setIdentification] = useState('');
-  const [issuedIn, setIssuedIn] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [license, setLicense] = useState('');
-  const [category, setCategory] = useState('');
-  const [expiresOn, setExpiresOn] = useState<Dayjs | null>(null);
-  const [bloodType, setBloodType] = useState('');
-  const [photo, setPhoto] = useState('');
-  const [photoFilename, setPhotoFilename] = useState('');
-  const [epsId, setEpsId] = useState<number>(0);
-  const [arlId, setArlId] = useState<number>(0);
-
-  // Catalog data
-  const [epsList, setEpsList] = useState<Option[]>([]);
-  const [arlList, setArlList] = useState<Option[]>([]);
-
-  // Dialog states removed; handled inside WithDialogSelector
-
-  // Local helpers
-  const disabledAll = loading || submitting;
-  
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        // Load EPS/ARL from storage if available
-        const catalogs = CatalogService.getCatalogsFromStorage();
-        if (!catalogs) {
-          warning('Catálogos no disponibles. Inicia sesión para precargar los catálogos.');
-        } else {
-          setEpsList(catalogs.eps || []);
-          setArlList(catalogs.arls || []);
-        }
-        // Vehicles no longer required
-      } catch (e: any) {
-        console.error('Error loading initial data', e);
-        const msg = e?.response?.data?.message || 'Error cargando datos';
-        error(Array.isArray(msg) ? msg.join('\n') : String(msg));
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [warning, error]);
-
-  const canSubmit = useMemo(() => {
-    return (
-      identification.trim().length > 0 &&
-      issuedIn.trim().length > 0 &&
-      firstName.trim().length > 0 &&
-      lastName.trim().length > 0 &&
-      phone.trim().length > 0 &&
-      license.trim().length > 0 &&
-      category.trim().length > 0 &&
-      !!expiresOn &&
-      bloodType.trim().length > 0 &&
-      photo.trim().length > 0 &&
-      epsId > 0 &&
-      arlId > 0
-    );
-  }, [identification, issuedIn, firstName, lastName, phone, license, category, expiresOn, bloodType, photo, epsId, arlId]);
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-    setSubmitting(true);
-    try {
-      const payload: any = {
-        identification: identification.trim(),
-        issuedIn: issuedIn.trim(),
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        phone: phone.trim(),
-        license: license.trim(),
-        category: category.trim(),
-        // Format as YYYY-MM-DD for backend
-        expiresOn: expiresOn ? expiresOn.format('YYYY-MM-DD') : '',
-        bloodType: bloodType.trim(),
-        photo: photo.trim(),
-        epsId,
-        arlId,
-      };
-      if (address.trim()) payload.address = address.trim();
-      let res;
-      if (selectedDriverId > 0) {
-        res = await api.put(`/drivers/${selectedDriverId}`, payload);
-        success('Conductor actualizado con éxito (ID ' + (res.data?.id ?? selectedDriverId) + ').');
-      } else {
-        res = await api.post('/drivers', payload);
-        success('Conductor creado con éxito (ID ' + res.data?.id + ').');
-        // Reset solo cuando es creación
-        setIdentification('');
-        setIssuedIn('');
-        setFirstName('');
-        setLastName('');
-        setPhone('');
-        setAddress('');
-        setLicense('');
-        setCategory('');
-        setExpiresOn(null);
-        setBloodType('');
-        setPhoto('');
-        setEpsId(0);
-        setArlId(0);
-        setSelectedDriverId(0);
-      }
-    } catch (e: any) {
-      console.error('Error creating driver', e);
-      const msg = e?.response?.data?.message || 'Error creando conductor';
-      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Realtime identification suggestions for Identificación
-  const [idQuery, setIdQuery] = useState('');
-  const [idOptions, setIdOptions] = useState<string[]>([]);
-  const [idResults, setIdResults] = useState<any[]>([]);
-  const [idLoading, setIdLoading] = useState(false);
-  useEffect(() => {
-    const q = idQuery.trim();
-    if (!q) { setIdOptions([]); return; }
-    const handle = setTimeout(async () => {
-      setIdLoading(true);
-      try {
-        const res = await api.get<any[]>('/drivers', { params: { identification: q } });
-        const data = Array.isArray(res.data) ? res.data : [];
-        setIdResults(data);
-        const ids = Array.from(new Set(data.map((d: any) => String(d?.identification || '').trim()).filter(Boolean)));
-        setIdOptions(ids);
-      } catch {
-        // Silent fail for suggestions
-        setIdOptions([]);
-      } finally {
-        setIdLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [idQuery]);
+  const {
+    loading,
+    submitting,
+    selectedDriverId,
+    identification,
+    issuedIn,
+    firstName,
+    lastName,
+    phone,
+    address,
+    license,
+    category,
+    expiresOn,
+    bloodType,
+    photo,
+    photoFilename,
+    epsId,
+    arlId,
+    epsList,
+    arlList,
+    disabledAll,
+    canSubmit,
+    idQuery,
+    idOptions,
+    idLoading,
+    nameQuery,
+    nameOptions,
+    nameLoading,
+    setIdentification,
+    setIssuedIn,
+    setFirstName,
+    setLastName,
+    setPhone,
+    setAddress,
+    setLicense,
+    setCategory,
+    setExpiresOn,
+    setBloodType,
+    setPhoto,
+    setPhotoFilename,
+    setEpsId,
+    setArlId,
+    onSubmit,
+    resetForm,
+    handleDriverSelection,
+    createEps,
+    createArl,
+    setIdQuery,
+    setNameQuery
+  } = useDrivers();
 
   return (
     <Box maxWidth={900} mx="auto" p={1}>
@@ -522,61 +424,20 @@ export default function Drivers(): JSX.Element {
                 <Box sx={{ flex: 1 }}>
                   <Autocomplete
                     options={idOptions}
-                    value={identification || null}
-                    onChange={(event, newValue) => {
-                      const val = newValue || '';
-                      setIdentification(val);
-                      if (val) {
-                        const found = idResults.find((d) => String(d?.identification).trim() === val.trim());
-                        if (found) {
-                          setIssuedIn(String(found?.issuedIn || ''));
-                          setFirstName(String(found?.firstName || ''));
-                          setLastName(String(found?.lastName || ''));
-                          setPhone(String(found?.phone || ''));
-                          setAddress(String(found?.address || ''));
-                          setLicense(String(found?.license || ''));
-                          setCategory(String(found?.category || ''));
-                          setBloodType(String(found?.bloodType || ''));
-                          // expiresOn expects Dayjs | null, backend likely returns date string
-                          try {
-                            const dateStr = String(found?.expiresOn || '').slice(0, 10);
-                            setExpiresOn(dateStr ? dayjs(dateStr) : null);
-                          } catch {
-                            setExpiresOn(null);
-                          }
-                          setPhoto(String(found?.photo || ''));
-                          setEpsId(Number(found?.epsId || 0));
-                          setArlId(Number(found?.arlId || 0));
-                          setSelectedDriverId(Number(found?.id || 0));
-                        }
-                        else {
-                          setSelectedDriverId(0);
-                        }
-                      }
-                    }}
+                    getOptionLabel={(option) => formatNumber(option.identification)}
+                    filterOptions={(x) => x}
+                    value={idOptions.find(opt => opt.identification === identification.replace(/[,.]/g, '')) || null}
+                    onChange={(_event, newValue) => handleDriverSelection(newValue)}
                     inputValue={idQuery}
-                    onInputChange={(e, newInput) => {
-                      const next = newInput || '';
-                      setIdQuery(next);
-                      setIdentification(next);
-                      // si el usuario cambia el texto, olvidar selección previa
-                      setSelectedDriverId(0);
+                    onInputChange={(_event, newInputValue) => {
+                      const digitsOnly = newInputValue.replace(/\D/g, '');
+                      setIdQuery(digitsOnly);
                     }}
                     loading={idLoading}
-                    freeSolo
-                    disablePortal
-                    filterOptions={(x) => x} // do not client-filter; server provides
                     renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Identificación"
-                        size="small"
-                        fullWidth
-                        required
-                        disabled={loading || submitting}
-                      />
+                      <TextField {...params} label="Buscar Identificación" size="small" fullWidth required disabled={disabledAll} />
                     )}
-                    disabled={loading || submitting}
+                    disabled={disabledAll}
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -587,7 +448,7 @@ export default function Drivers(): JSX.Element {
                     value={issuedIn}
                     onChange={e => setIssuedIn(e.target.value)}
                     required
-                    disabled={loading || submitting}
+                    disabled={disabledAll}
                   />
                 </Box>
               </Stack>
@@ -601,7 +462,7 @@ export default function Drivers(): JSX.Element {
                     value={firstName}
                     onChange={e => setFirstName(e.target.value)}
                     required
-                    disabled={loading || submitting}
+                    disabled={disabledAll}
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -612,7 +473,7 @@ export default function Drivers(): JSX.Element {
                     value={lastName}
                     onChange={e => setLastName(e.target.value)}
                     required
-                    disabled={loading || submitting}
+                    disabled={disabledAll}
                   />
                 </Box>
               </Stack>
@@ -626,7 +487,7 @@ export default function Drivers(): JSX.Element {
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     required
-                    disabled={loading || submitting}
+                    disabled={disabledAll}
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -636,7 +497,7 @@ export default function Drivers(): JSX.Element {
                     fullWidth
                     value={address}
                     onChange={e => setAddress(e.target.value)}
-                    disabled={loading || submitting}
+                    disabled={disabledAll}
                   />
                 </Box>
               </Stack>
@@ -650,7 +511,7 @@ export default function Drivers(): JSX.Element {
                     value={license}
                     onChange={e => setLicense(e.target.value)}
                     required
-                    disabled={loading || submitting}
+                    disabled={disabledAll}
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -714,11 +575,7 @@ export default function Drivers(): JSX.Element {
                     value={epsId}
                     options={epsList}
                     onChange={(id) => setEpsId(id)}
-                    onCreate={async (name) => {
-                      const created = await CatalogService.createEps(name);
-                      setEpsList(prev => [...prev, created]);
-                      return created;
-                    }}
+                    onCreate={createEps}
                     icon={<LocalHospitalIcon />}
                     addButtonAria="Agregar EPS"
                   />
@@ -729,11 +586,7 @@ export default function Drivers(): JSX.Element {
                     value={arlId}
                     options={arlList}
                     onChange={(id) => setArlId(id)}
-                    onCreate={async (name) => {
-                      const created = await CatalogService.createArl(name);
-                      setArlList(prev => [...prev, created]);
-                      return created;
-                    }}
+                    onCreate={createArl}
                     icon={<HealthAndSafetyIcon />}
                     addButtonAria="Agregar ARL"
                   />
@@ -741,16 +594,10 @@ export default function Drivers(): JSX.Element {
               </Stack>
 
               <Box display="flex" gap={1}>
-                <Button type="submit" variant="contained" disabled={!canSubmit || loading || submitting}>
+                <Button type="submit" variant="contained" disabled={!canSubmit || disabledAll}>
                   {submitting ? (selectedDriverId > 0 ? 'Actualizando...' : 'Guardando...') : (selectedDriverId > 0 ? 'Actualizar' : 'Guardar')}
                 </Button>
-                <Button type="button" variant="outlined" disabled={loading || submitting}
-                  onClick={() => {
-                    setIdentification(''); setIssuedIn(''); setFirstName(''); setLastName('');
-                    setPhone(''); setAddress(''); setLicense(''); setCategory(''); setExpiresOn(null); setBloodType('');
-                    setPhoto(''); setPhotoFilename(''); setEpsId(0); setArlId(0); setSelectedDriverId(0);
-                  }}
-                >
+                <Button type="button" variant="outlined" disabled={disabledAll} onClick={resetForm}>
                   Limpiar
                 </Button>
               </Box>
