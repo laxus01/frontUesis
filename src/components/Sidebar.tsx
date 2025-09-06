@@ -37,6 +37,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         </li>
         <li>
           <NavLink
+            to="/owners"
+            onClick={onItemClick}
+            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          >
+            <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
+            <span>Propietarios</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink
             to="/vehicles"
             onClick={onItemClick}
             className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
@@ -57,12 +67,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         </li>
         <li>
           <NavLink
-            to="/owners"
+            to="/download-lists"
             onClick={onItemClick}
             className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
           >
-            <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
-            <span>Propietarios</span>
+            <span className="material-symbols-outlined text-base">file_export</span>
+            <span>Exportar listados</span>
           </NavLink>
         </li>
         <li>
@@ -143,6 +153,35 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             </ul>
           )}
         </li>     
+        <li>
+          <button
+            type="button"
+            onClick={() => setReportsOpen(v => !v)}
+            className={`${linkBase} w-full justify-between`}
+            aria-expanded={reportsOpen}
+            aria-controls="submenu-reports"
+          >
+            <span className="flex items-center gap-2">
+              <AssessmentIcon color="inherit" sx={{ fontSize: 18 }} />
+              <span>Informes</span>
+            </span>
+            {reportsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </button>
+          {reportsOpen && (
+            <ul id="submenu-reports" className="mt-1 ml-6 space-y-1">
+              <li>
+                <NavLink
+                  to="/reports/vehicles"
+                  onClick={onItemClick}
+                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                >
+                  <span className="material-symbols-outlined text-base">description</span>
+                  <span>Tarjetas de control</span>
+                </NavLink>
+              </li>
+            </ul>
+          )}
+        </li>
         <li>
           <button
             type="button"

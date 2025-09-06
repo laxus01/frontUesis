@@ -16,6 +16,7 @@ import Administration from './pages/Administration';
 import AdministrationPayments from './pages/AdministrationPayments';
 import IncomeCertificate from './pages/IncomeCertificate';
 import Owners from './pages/Owners';
+import DownloadLists from './pages/DownloadLists';
 
 function App(): JSX.Element {
   const [currentUser, setCurrentUser] = useState<AuthData | undefined>(undefined);
@@ -135,6 +136,7 @@ function App(): JSX.Element {
                 <Route path="/reports/administration-payments" element={<AdministrationPayments />} />
                 <Route path="/documents" element={<IncomeCertificate />} />
                 <Route path="/owners" element={<Owners />} />
+                <Route path="/download-lists" element={<DownloadLists />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </section>
