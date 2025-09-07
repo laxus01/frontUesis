@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/http';
+import { useNotify } from '../services/notify';
 
 export interface OwnerLite {
   id: number;
@@ -13,9 +14,10 @@ interface Owner extends OwnerLite {
   address: string;
 }
 
-import { formatNumber } from '../utils/formatting';
+import { formatNumber, unformatNumber } from '../utils/formatting';
 
 export const useOwners = () => {
+  const { success, error } = useNotify();
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [selectedOwnerId, setSelectedOwnerId] = useState<number>(0);
@@ -134,19 +136,32 @@ export const useOwners = () => {
 
     setSubmitting(true);
     try {
-      const payload = { identification, name, phone, email, address };
+      const payload = { identification: unformatNumber(identification), name, phone, email, address };
       if (selectedOwnerId > 0) {
         await api.put(`/owner/${selectedOwnerId}`, payload);
+        success('Propietario actualizado exitosamente');
       } else {
         await api.post('/owner', payload);
+        success('Propietario creado exitosamente');
+        // Reset form after successful creation (only for new owners)
+        resetForm();
       }
-      // You might want to add some success feedback here
-    } catch (err) {
-      // You might want to add some error feedback here
+    } catch (err: any) {
+      console.error('Error saving owner:', err);
+      
+      // Handle specific error cases
+      if (err?.response?.status === 409 && err?.response?.data?.error === 'IDENTIFICATION_ALREADY_EXISTS') {
+        const identification = err.response.data.identification;
+        error(`La identificación ${identification} ya existe en la base de datos`);
+      } else if (err?.response?.data?.message) {
+        error(err.response.data.message);
+      } else {
+        error('Error al guardar el propietario. Intente nuevamente.');
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, identification, name, phone, email, address, selectedOwnerId]);
+  }, [canSubmit, identification, name, phone, email, address, selectedOwnerId, resetForm, success, error]);
 
   return {
     loading,
@@ -175,5 +190,7 @@ export const useOwners = () => {
     onSubmit,
     resetForm,
     handleOwnerSelection,
+    populateForm,
+    getOwnerAndPopulate,
   };
 };

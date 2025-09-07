@@ -6,6 +6,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import PlagiarismOutlinedIcon from '@mui/icons-material/PlagiarismOutlined';
 
 type SidebarProps = {
   onItemClick?: () => void;
@@ -66,16 +67,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           </NavLink>
         </li>
         <li>
-          <NavLink
-            to="/download-lists"
-            onClick={onItemClick}
-            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-          >
-            <span className="material-symbols-outlined text-base">file_export</span>
-            <span>Exportar listados</span>
-          </NavLink>
-        </li>
-        <li>
           <button
             type="button"
             onClick={() => setControlOpen(v => !v)}
@@ -84,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             aria-controls="submenu-control-card"
           >
             <span className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">description</span>
+              <span className="material-symbols-outlined text-base">credit_card</span>
               <span>Tarjeta de control</span>
             </span>
             {controlOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
@@ -162,8 +153,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             aria-controls="submenu-reports"
           >
             <span className="flex items-center gap-2">
-              <AssessmentIcon color="inherit" sx={{ fontSize: 18 }} />
-              <span>Informes</span>
+              <PlagiarismOutlinedIcon color="inherit" sx={{ fontSize: 18 }} />
+              <span>Consultas</span>
             </span>
             {reportsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
           </button>
@@ -171,12 +162,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <ul id="submenu-reports" className="mt-1 ml-6 space-y-1">
               <li>
                 <NavLink
-                  to="/reports/vehicles"
+                  to="/reports/operation-cards"
                   onClick={onItemClick}
                   className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
                 >
-                  <span className="material-symbols-outlined text-base">description</span>
-                  <span>Tarjetas de control</span>
+                  <span className="material-symbols-outlined text-base">credit_card</span>
+                  <span>Consultar Tarjetas</span>
                 </NavLink>
               </li>
             </ul>

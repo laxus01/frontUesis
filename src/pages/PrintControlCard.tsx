@@ -1,10 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Autocomplete, Box, Card, CardContent, CircularProgress, IconButton, Stack, TextField, Typography } from '@mui/material';
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Stack,
+  Alert,
+  IconButton,
+  Autocomplete,
+  TextField,
+  Chip,
+  CircularProgress,
+} from '@mui/material';
+import { Print as PrintIcon, Edit as EditIcon, Warning as WarningIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import api from '@/services/http';
-import { useNotify } from '@/services/notify';
-import PrintIcon from '@mui/icons-material/Print';
-import WarningIcon from '@mui/icons-material/Warning';
+import api from '../services/http';
+import { useNotify } from '../services/notify';
+import ControlCardEditModal from '../components/modals/ControlCardEditModal';
 
 const formatNumber = (value: string): string => {
   if (!value) return '';
@@ -70,6 +82,48 @@ export default function PrintControlCard(): JSX.Element {
   const [idOptions, setIdOptions] = useState<Person[]>([]);
   const [idLoading, setIdLoading] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Person | null>(null);
+
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedControlCard, setSelectedControlCard] = useState<DriverVehicleRes | null>(null);
+
+  const handleEditModalClose = () => {
+    setEditModalOpen(false);
+    setSelectedControlCard(null);
+  };
+
+  const handleEditSuccess = async () => {
+    // Refresh the results after successful edit by refetching data
+    if (!selectedDriverId && !selectedVehicleId) return;
+    
+    setLoadingResults(true);
+    try {
+      let data: DriverVehicleRes[] = [];
+      if (selectedDriverId && selectedVehicleId) {
+        // Fetch by both and intersect on vehicle/driver id
+        const [byDriver, byVehicle] = await Promise.all([
+          api.get<DriverVehicleRes[]>(`/driver-vehicles/by-driver/${selectedDriverId}`),
+          api.get<DriverVehicleRes[]>(`/driver-vehicles/by-vehicle/${selectedVehicleId}`),
+        ]);
+        const a = Array.isArray(byDriver.data) ? byDriver.data : [];
+        const b = Array.isArray(byVehicle.data) ? byVehicle.data : [];
+        const setB = new Set(b.map(x => `${x.driver?.id}-${x.vehicle?.id}`));
+        data = a.filter(x => setB.has(`${x.driver?.id}-${x.vehicle?.id}`));
+      } else if (selectedDriverId) {
+        const res = await api.get<DriverVehicleRes[]>(`/driver-vehicles/by-driver/${selectedDriverId}`);
+        data = Array.isArray(res.data) ? res.data : [];
+      } else if (selectedVehicleId) {
+        const res = await api.get<DriverVehicleRes[]>(`/driver-vehicles/by-vehicle/${selectedVehicleId}`);
+        data = Array.isArray(res.data) ? res.data : [];
+      }
+      setResults(data);
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'No se pudo obtener la información';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+    } finally {
+      setLoadingResults(false);
+    }
+  };
 
   const handlePersonSelection = (person: Person | null) => {
     setSelectedDriver(person);
@@ -205,6 +259,8 @@ export default function PrintControlCard(): JSX.Element {
 
   // Fetch results when a filter is selected
   useEffect(() => {
+    console.log('selectedDriverId', selectedDriverId);
+    console.log('selectedVehicleId', selectedVehicleId);
     const fetchResults = async () => {
             if (!selectedDriverId && !selectedVehicleId) { setResults([]); return; }
       setLoadingResults(true);
@@ -348,25 +404,37 @@ export default function PrintControlCard(): JSX.Element {
               <Card key={item.id} className="relative print:break-inside-avoid">
                 <CardContent>
                   {expiredDocs.length === 0 && (
-                    <IconButton
-                      size="small"
-                      className="!absolute top-2 right-2"
-                      aria-label="Imprimir tarjeta"
-                      title="Imprimir tarjeta"
-                      onClick={() => {
-                        // Solo enviar el id del registro drivers_vehicles (dvId) en la URL
-                        const dvId = item?.id ? String(item.id) : '';
-                        const params = new URLSearchParams();
-                        if (dvId) params.set('dvId', dvId);
-                        const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
-                        const url = `${base}/absolute-print${params.toString() ? `?${params.toString()}` : ''}`;
-                        try {
-                          window.open(url, '_blank', 'noopener,noreferrer,width=1200,height=700');
-                        } catch {}
-                      }}
-                    >
-                      <PrintIcon fontSize="small" color="primary" />
-                    </IconButton>
+                    <Box className="!absolute top-2 right-2 flex gap-1">
+                      <IconButton
+                        size="small"
+                        aria-label="Editar tarjeta"
+                        title="Editar tarjeta"
+                        onClick={() => {
+                          setSelectedControlCard(item);
+                          setEditModalOpen(true);
+                        }}
+                      >
+                        <EditIcon fontSize="small" color="primary" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        aria-label="Imprimir tarjeta"
+                        title="Imprimir tarjeta"
+                        onClick={() => {
+                          // Solo enviar el id del registro drivers_vehicles (dvId) en la URL
+                          const dvId = item?.id ? String(item.id) : '';
+                          const params = new URLSearchParams();
+                          if (dvId) params.set('dvId', dvId);
+                          const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
+                          const url = `${base}/absolute-print${params.toString() ? `?${params.toString()}` : ''}`;
+                          try {
+                            window.open(url, '_blank', 'noopener,noreferrer,width=1200,height=700');
+                          } catch {}
+                        }}
+                      >
+                        <PrintIcon fontSize="small" color="primary" />
+                      </IconButton>
+                    </Box>
                   )}
                   
                   <Stack spacing={1}>
@@ -412,6 +480,14 @@ export default function PrintControlCard(): JSX.Element {
           })}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <ControlCardEditModal
+        open={editModalOpen}
+        onClose={handleEditModalClose}
+        onSuccess={handleEditSuccess}
+        controlCardData={selectedControlCard}
+      />
     </div>
   );
 }

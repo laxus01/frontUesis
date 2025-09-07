@@ -1,612 +1,316 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
-  Stack,
-  MenuItem,
-  Select,
-  TextField,
   Typography,
-  InputLabel,
-  FormControl,
-  IconButton,
-  Tooltip,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Autocomplete,
+  List,
+  ListItem,
+  ListItemText,
+  Alert,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import type { Dayjs } from 'dayjs';
-import dayjs from 'dayjs';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import CameraAlt from '@mui/icons-material/CameraAlt';
-import ImageIcon from '@mui/icons-material/Image';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import CatalogService, { Option } from '../services/catalog.service';
-import UploadService from '../services/upload.service';
-import api from '../services/http';
-import { useNotify } from '../services/notify';
-import { formatNumber } from '../utils/formatting';
-import { useDrivers } from '../hooks/useDrivers';
+import { Add as AddIcon, Edit, Delete, PersonAddAlt1 as PersonAddAlt1Icon } from '@mui/icons-material';
+import { DataTable } from '../components/common/DataTable';
+import DriverFormModal, { Driver } from '../components/modals/DriverFormModal';
+import { useDriversList } from '../hooks/useDriversList';
+import type { TableColumn, TableAction } from '../components/common/DataTable';
 
-// Constants
-const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
-const CATEGORIES = ['C1', 'C2', 'C3'];
+export default function Drivers() {
+  const { drivers, loading, fetchDrivers, deleteDriver } = useDriversList();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const [deleteError, setDeleteError] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-// Subcomponents
-type PhotoUploaderProps = {
-  photo: string;
-  photoFilename: string;
-  disabled: boolean;
-  onChange: (url: string, filename: string) => void;
-};
 
-function PhotoUploader({ photo, photoFilename, disabled, onChange }: PhotoUploaderProps) {
-  const { success, error } = useNotify();
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [openCam, setOpenCam] = useState(false);
-  const [startingCam, setStartingCam] = useState(false);
-  const [capturing, setCapturing] = useState(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
-  React.useEffect(() => {
-    if (openCam) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-    return () => {
-      stopCamera();
-    };
-  }, [openCam]);
-
-  const handleUpload = async (f: File) => {
-    setUploading(true);
-    try {
-      const res = await UploadService.uploadFile(f);
-      onChange(res.url, res.filename);
-      success('Foto subida');
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || 'No se pudo subir la foto';
-      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
-    } finally {
-      setUploading(false);
-    }
+  const handleAdd = () => {
+    setSelectedDriver(null);
+    setModalOpen(true);
   };
 
-  const handleDelete = async () => {
-    const filename = photoFilename || (photo ? photo.split('/').pop() || '' : '');
-    if (!filename) { onChange('', ''); return; }
-    setUploading(true);
-    try {
-      await UploadService.deleteFile(filename);
-      onChange('', '');
-      success('Foto eliminada');
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || 'No se pudo eliminar la foto';
-      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
-    } finally {
-      setUploading(false);
-    }
+  const handleEdit = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setModalOpen(true);
   };
 
-  const stopCamera = () => {
-    const s = streamRef.current;
-    if (s) {
-      s.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
+  const handleDelete = (driver: Driver) => {
+    setDriverToDelete(driver);
+    setDeleteDialogOpen(true);
   };
 
-  const startCamera = async () => {
-    setStartingCam(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+  const confirmDelete = async () => {
+    if (driverToDelete) {
+      setIsDeleting(true);
+      setDeleteError(null);
+      
+      const result = await deleteDriver(driverToDelete.id);
+      
+      if (result.success) {
+        setDeleteDialogOpen(false);
+        setDriverToDelete(null);
+      } else {
+        setDeleteError(result);
       }
-    } catch (e: any) {
-      const msg = e?.message || 'No se pudo acceder a la cámara';
-      error(String(msg));
-      setOpenCam(false);
-    } finally {
-      setStartingCam(false);
+      
+      setIsDeleting(false);
     }
   };
 
-  const handleCapture = async () => {
-    if (!videoRef.current) return;
-    setCapturing(true);
-    try {
-      const video = videoRef.current;
-      const canvas = canvasRef.current || document.createElement('canvas');
-      const w = video.videoWidth || 640;
-      const h = video.videoHeight || 480;
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('No se pudo obtener el contexto del lienzo');
-      ctx.drawImage(video, 0, 0, w, h);
-      const blob: Blob = await new Promise((resolve) => canvas.toBlob(b => resolve(b as Blob), 'image/jpeg', 0.9));
-      const file = new File([blob], `captura_${Date.now()}.jpg`, { type: 'image/jpeg' });
-      await handleUpload(file);
-      setOpenCam(false);
-    } catch (e: any) {
-      const msg = e?.message || 'No se pudo capturar la foto';
-      error(String(msg));
-    } finally {
-      stopCamera();
-      setCapturing(false);
-    }
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedDriver(null);
+    fetchDrivers();
   };
 
-  return (
-    <Box display="flex" justifyContent="center">
-      <Box sx={{ position: 'relative', display: 'inline-block' }}>
-        {photo ? (
+  const handleDeleteDialogClose = () => {
+    setDeleteDialogOpen(false);
+    setDriverToDelete(null);
+    setDeleteError(null);
+  };
+
+
+  const columns: TableColumn<Driver>[] = [
+    {
+      id: 'photo',
+      label: 'Foto',
+      sortable: false,
+      render: (photoUrl, driver) => {
+        const hasImageError = imageErrors.has(driver.id);
+        
+        if (!photoUrl || hasImageError) {
+          return (
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                backgroundColor: '#f0f0f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid #ddd',
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {driver.firstName?.charAt(0)}{driver.lastName?.charAt(0)}
+              </Typography>
+            </Box>
+          );
+        }
+
+        return (
           <Box
             component="img"
-            src={photo}
-            alt="Foto del conductor"
-            sx={{ width: 160, height: 160, objectFit: 'cover', borderRadius: '50%', border: '1px solid #eee' }}
+            src={photoUrl}
+            alt={`${driver.firstName} ${driver.lastName}`}
+            onError={() => {
+              setImageErrors(prev => new Set([...prev, driver.id]));
+            }}
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '1px solid #eee',
+              display: 'block',
+              flexShrink: 0,
+            }}
           />
-        ) : (
-          <AccountCircle sx={{ fontSize: 160, color: 'action.disabled' }} />
-        )}
-        <Box sx={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 'calc(100% + 10px)', display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Tooltip title="Tomar foto">
-            <span>
-              <IconButton
-                color="primary"
-                size="small"
-                onClick={() => { if (!disabled && !uploading) { setOpenCam(true); } }}
-                disabled={disabled || uploading}
-                sx={{ bgcolor: 'background.paper', boxShadow: 1 }}
-                aria-label="Tomar foto"
-              >
-                <CameraAlt fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Seleccionar foto">
-            <span>
-              <IconButton
-                color="primary"
-                size="small"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={disabled || uploading}
-                sx={{ bgcolor: 'background.paper', boxShadow: 1 }}
-                aria-label="Seleccionar foto"
-              >
-                <ImageIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          {photo && (
-            <Tooltip title="Eliminar foto">
-              <span>
-                <IconButton
-                  color="error"
-                  size="small"
-                  onClick={handleDelete}
-                  disabled={disabled || uploading}
-                  sx={{ bgcolor: 'background.paper', boxShadow: 1 }}
-                  aria-label="Eliminar foto"
-                >
-                  <DeleteForeverIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          )}
+        );
+      },
+    },
+    {
+      id: 'firstName',
+      label: 'Nombre',
+      sortable: true,
+    },
+    {
+      id: 'lastName',
+      label: 'Apellido',
+      sortable: true,
+    },
+    {
+      id: 'identification',
+      label: 'Identificación',
+      sortable: true,
+    },
+    {
+      id: 'phone',
+      label: 'Teléfono',
+      sortable: false,
+    },
+    {
+      id: 'license',
+      label: 'N° Licencia',
+      sortable: true,
+    },
+    {
+      id: 'category',
+      label: 'Categoría',
+      sortable: true,
+    },
+    {
+      id: 'expiresOn',
+      label: 'Vencimiento',
+      sortable: true,
+      render: (expiresOn) => new Date(expiresOn).toLocaleDateString(),
+    },
+    {
+      id: 'bloodType',
+      label: 'Tipo Sangre',
+      sortable: true,
+    },
+  ];
+
+  const actions: TableAction<Driver>[] = [
+    {
+      label: 'Editar',
+      icon: <Edit />,
+      onClick: handleEdit,
+      color: 'primary',
+    },
+    {
+      label: 'Eliminar',
+      icon: <Delete />,
+      onClick: handleDelete,
+      color: 'error',
+    },
+  ];
+
+
+  return (
+    <Box maxWidth={1200} mx="auto" p={2}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+            <PersonAddAlt1Icon color="primary" sx={{ fontSize: 28 }} />
+            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
+              Conductores
+            </Typography>
+          </Box>
+          <Box sx={{ height: 3, width: 170, bgcolor: 'primary.main', borderRadius: 1 }} />
         </Box>
+        
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleAdd}
+        >
+          Agregar Conductor
+        </Button>
       </Box>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture
-        hidden
-        onChange={async (e) => {
-          const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-          if (!f) return;
-          await handleUpload(f);
-          if (e.currentTarget) e.currentTarget.value = '';
+
+      <DataTable
+        data={drivers}
+        columns={columns}
+        actions={actions}
+        loading={loading}
+        searchable
+        sortable
+        paginated
+        pageSize={10}
+        emptyMessage="No hay conductores registrados"
+        exportConfig={{
+          endpoint: '/drivers/export/excel',
+          filename: 'listado-conductores.xlsx'
         }}
       />
+
+      <DriverFormModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        editDriver={selectedDriver}
+        onSuccess={fetchDrivers}
+      />
+
       <Dialog
-        open={openCam}
-        onClose={() => { if (!startingCam && !capturing) { setOpenCam(false); stopCamera(); } }}
-        fullWidth
+        open={deleteDialogOpen}
+        onClose={handleDeleteDialogClose}
         maxWidth="sm"
+        fullWidth
       >
-        <DialogTitle>Tomar foto</DialogTitle>
+        <DialogTitle>
+          {deleteError ? 'Error al eliminar conductor' : 'Confirmar eliminación'}
+        </DialogTitle>
         <DialogContent>
-          <Box sx={{ position: 'relative', width: '100%' }}>
-            <video ref={videoRef} style={{ width: '100%', borderRadius: 8 }} playsInline autoPlay muted />
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-          </Box>
+          {deleteError ? (
+            <Box>
+              {deleteError.error === 'DRIVER_NOT_FOUND' && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    El conductor no fue encontrado. Es posible que ya haya sido eliminado.
+                  </Typography>
+                </Alert>
+              )}
+              
+              {deleteError.error === 'DRIVER_HAS_ASSIGNED_VEHICLES' && (
+                <Box>
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      No se puede eliminar el conductor <strong>{deleteError.data?.driverName}</strong> 
+                      (ID: {deleteError.data?.driverIdentification}) porque tiene vehículos asignados.
+                    </Typography>
+                  </Alert>
+                  
+                  
+                  <List dense>
+                    {deleteError.data?.assignedVehicles?.map((vehicle: any) => (
+                      <ListItem key={vehicle.vehicleId} sx={{ py: 0.5 }}>
+                        <ListItemText
+                          primary={`${vehicle.make} ${vehicle.model}`}
+                          secondary={`Placa: ${vehicle.plate}`}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                  
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Para eliminar este conductor, primero debe desasignar o eliminar los vehículos asociados.
+                  </Typography>
+                </Box>
+              )}
+              
+              {deleteError.error !== 'DRIVER_NOT_FOUND' && deleteError.error !== 'DRIVER_HAS_ASSIGNED_VEHICLES' && (
+                <Alert severity="error">
+                  <Typography variant="body2">
+                    {deleteError.message}
+                  </Typography>
+                </Alert>
+              )}
+            </Box>
+          ) : (
+            <Typography>
+              ¿Está seguro que desea eliminar al conductor{' '}
+              <strong>
+                {driverToDelete?.firstName} {driverToDelete?.lastName}
+              </strong>
+              ?
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setOpenCam(false); stopCamera(); }} disabled={startingCam || capturing}>Cerrar</Button>
-          <Button variant="contained" onClick={handleCapture} disabled={startingCam || capturing}>
-            {capturing ? 'Capturando...' : 'Capturar'}
+          <Button onClick={handleDeleteDialogClose}>
+            {deleteError ? 'Cerrar' : 'Cancelar'}
           </Button>
+          {!deleteError && (
+            <Button
+              onClick={confirmDelete}
+              color="error"
+              variant="contained"
+              disabled={driverToDelete === null || isDeleting}
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
-    </Box>
-  );
-}
-
-type WithDialogSelectorProps = {
-  label: string;
-  value: number;
-  options: Option[];
-  onChange: (id: number) => void;
-  onCreate: (name: string) => Promise<Option>;
-  icon: React.ReactNode;
-  addButtonAria: string;
-  disabled?: boolean;
-};
-
-function WithDialogSelector({ label, value, options, onChange, onCreate, icon, addButtonAria, disabled }: WithDialogSelectorProps) {
-  const { warning, error, success } = useNotify();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  return (
-    <>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <FormControl fullWidth size="small" required disabled={!!disabled}>
-          <InputLabel id={`${label}-select-label`}>{label}</InputLabel>
-          <Select
-            labelId={`${label}-select-label`}
-            label={label}
-            value={value}
-            displayEmpty
-            onChange={e => onChange(e.target.value === 0 ? 0 : Number(e.target.value))}
-          >
-            {options.map(o => (
-              <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        {!disabled && (
-          <Tooltip title={`Agregar ${label}`}>
-            <span>
-              <IconButton color="primary" onClick={() => setOpen(true)} aria-label={addButtonAria}>
-                {icon}
-              </IconButton>
-            </span>
-          </Tooltip>
-        )}
-      </Stack>
-      <Dialog open={open} onClose={() => !saving && setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>{`Agregar ${label}`}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label={`Nombre de la ${label}`}
-            type="text"
-            fullWidth
-            value={name}
-            onChange={e => setName(e.target.value)}
-            disabled={saving}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
-          <Button
-            variant="contained"
-            onClick={async () => {
-              const trimmed = name.trim();
-              if (!trimmed) { warning('Ingrese un nombre válido'); return; }
-              setSaving(true);
-              try {
-                const created = await onCreate(trimmed);
-                onChange(created.id);
-                setOpen(false);
-                setName('');
-                success(`${label} creada`);
-              } catch (e: any) {
-                const msg = e?.response?.data?.message || `No se pudo crear la ${label}`;
-                error(Array.isArray(msg) ? msg.join('\n') : String(msg));
-              } finally {
-                setSaving(false);
-              }
-            }}
-            disabled={saving}
-          >
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
-  );
-}
-
-type VehicleSelectProps = {
-  vehicles: Option[];
-  valueId: number;
-  onChange: (id: number) => void;
-  disabled?: boolean;
-};
-
-// Vehicle selection removed
-
-export default function Drivers(): JSX.Element {
-  const {
-    loading,
-    submitting,
-    selectedDriverId,
-    identification,
-    issuedIn,
-    firstName,
-    lastName,
-    phone,
-    address,
-    license,
-    category,
-    expiresOn,
-    bloodType,
-    photo,
-    photoFilename,
-    epsId,
-    arlId,
-    epsList,
-    arlList,
-    disabledAll,
-    canSubmit,
-    idQuery,
-    idOptions,
-    idLoading,
-    nameQuery,
-    nameOptions,
-    nameLoading,
-    setIdentification,
-    setIssuedIn,
-    setFirstName,
-    setLastName,
-    setPhone,
-    setAddress,
-    setLicense,
-    setCategory,
-    setExpiresOn,
-    setBloodType,
-    setPhoto,
-    setPhotoFilename,
-    setEpsId,
-    setArlId,
-    onSubmit,
-    resetForm,
-    handleDriverSelection,
-    createEps,
-    createArl,
-    setIdQuery,
-    setNameQuery
-  } = useDrivers();
-
-  return (
-    <Box maxWidth={900} mx="auto" p={1}>
-      <>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-          <PersonAddAlt1Icon color="primary" sx={{ fontSize: 28 }} />
-          <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
-            Conductores
-          </Typography>
-        </Box>
-        <Box sx={{ height: 3, width: 170, bgcolor: 'primary.main', borderRadius: 1, mb: 2 }} />
-      </>
-      <Card>
-        <CardContent>
-          <Box component="form" onSubmit={onSubmit}>
-            <Stack spacing={2}>
-              {/* Foto */}
-              <PhotoUploader
-                photo={photo}
-                photoFilename={photoFilename}
-                disabled={disabledAll}
-                onChange={(url, filename) => { setPhoto(url); setPhotoFilename(filename); }}
-              />
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <Autocomplete
-                    options={idOptions}
-                    getOptionLabel={(option) => formatNumber(option.identification)}
-                    filterOptions={(x) => x}
-                    value={idOptions.find(opt => opt.identification === identification.replace(/[,.]/g, '')) || null}
-                    onChange={(_event, newValue) => handleDriverSelection(newValue)}
-                    inputValue={idQuery}
-                    onInputChange={(_event, newInputValue) => {
-                      const digitsOnly = newInputValue.replace(/\D/g, '');
-                      setIdQuery(digitsOnly);
-                    }}
-                    loading={idLoading}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Buscar Identificación" size="small" fullWidth required disabled={disabledAll} />
-                    )}
-                    disabled={disabledAll}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="De"
-                    size="small"
-                    fullWidth
-                    value={issuedIn}
-                    onChange={e => setIssuedIn(e.target.value)}
-                    required
-                    disabled={disabledAll}
-                  />
-                </Box>
-              </Stack>
-
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Nombre"
-                    size="small"
-                    fullWidth
-                    value={firstName}
-                    onChange={e => setFirstName(e.target.value)}
-                    required
-                    disabled={disabledAll}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Apellido"
-                    size="small"
-                    fullWidth
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
-                    required
-                    disabled={disabledAll}
-                  />
-                </Box>
-              </Stack>
-
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Teléfono"
-                    size="small"
-                    fullWidth
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    required
-                    disabled={disabledAll}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Dirección"
-                    size="small"
-                    fullWidth
-                    value={address}
-                    onChange={e => setAddress(e.target.value)}
-                    disabled={disabledAll}
-                  />
-                </Box>
-              </Stack>
-
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Licencia"
-                    size="small"
-                    fullWidth
-                    value={license}
-                    onChange={e => setLicense(e.target.value)}
-                    required
-                    disabled={disabledAll}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <FormControl fullWidth size="small" disabled={disabledAll} required>
-                    <InputLabel id="category-select-label">Categoría</InputLabel>
-                    <Select
-                      labelId="category-select-label"
-                      label="Categoría"
-                      value={category}
-                      displayEmpty
-                      onChange={e => setCategory(String(e.target.value))}
-                    >
-                      {CATEGORIES.map(cat => (
-                        <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Stack>
-
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <DatePicker
-                    label="Vence"
-                    value={expiresOn}
-                    onChange={(newValue) => setExpiresOn(newValue)}
-                    format="YYYY-MM-DD"
-                    slotProps={{
-                      textField: {
-                        size: 'small',
-                        fullWidth: true,
-                        required: true,
-                        disabled: disabledAll,
-                      },
-                    }}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <FormControl fullWidth size="small" disabled={disabledAll} required>
-                    <InputLabel id="bloodtype-select-label">Tipo de sangre</InputLabel>
-                    <Select
-                      labelId="bloodtype-select-label"
-                      label="Tipo de sangre"
-                      value={bloodType}
-                      displayEmpty
-                      onChange={e => setBloodType(String(e.target.value))}
-                    >
-                      {BLOOD_TYPES.map(bt => (
-                        <MenuItem key={bt} value={bt}>{bt}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Stack>
-
-              {/* Fila: EPS y ARL */}
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <WithDialogSelector
-                    label="EPS"
-                    value={epsId}
-                    options={epsList}
-                    onChange={(id) => setEpsId(id)}
-                    onCreate={createEps}
-                    icon={<LocalHospitalIcon />}
-                    addButtonAria="Agregar EPS"
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <WithDialogSelector
-                    label="ARL"
-                    value={arlId}
-                    options={arlList}
-                    onChange={(id) => setArlId(id)}
-                    onCreate={createArl}
-                    icon={<HealthAndSafetyIcon />}
-                    addButtonAria="Agregar ARL"
-                  />
-                </Box>
-              </Stack>
-
-              <Box display="flex" gap={1}>
-                <Button type="submit" variant="contained" disabled={!canSubmit || disabledAll}>
-                  {submitting ? (selectedDriverId > 0 ? 'Actualizando...' : 'Guardando...') : (selectedDriverId > 0 ? 'Actualizar' : 'Guardar')}
-                </Button>
-                <Button type="button" variant="outlined" disabled={disabledAll} onClick={resetForm}>
-                  Limpiar
-                </Button>
-              </Box>
-            </Stack>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Diálogos de EPS/ARL han sido integrados en WithDialogSelector */}
     </Box>
   );
 }

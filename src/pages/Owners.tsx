@@ -1,147 +1,278 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  Autocomplete,
   Box,
   Button,
-  Card,
-  CardContent,
-  Stack,
-  TextField,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Fab,
 } from '@mui/material';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import { useOwners } from '../hooks/useOwners';
+import {
+  PersonAdd as PersonAddIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
+import DataTable, { TableColumn, TableAction } from '../components/common/DataTable';
+import OwnerFormModal from '../components/modals/OwnerFormModal';
+import { useOwnersList, Owner } from '../hooks/useOwnersList';
 import { formatNumber } from '../utils/formatting';
 
 export default function Owners(): JSX.Element {
-  const {
-    loading,
-    submitting,
-    selectedOwnerId,
-    identification,
-    name,
-    phone,
-    email,
-    address,
-    disabledAll,
-    canSubmit,
-    idQuery,
-    idOptions,
-    idLoading,
-    nameQuery,
-    nameOptions,
-    nameLoading,
-    setIdentification,
-    setName,
-    setPhone,
-    setEmail,
-    setAddress,
-    setIdQuery,
-    setNameQuery,
-    onSubmit,
-    resetForm,
-    handleOwnerSelection,
-  } = useOwners();
+  const { owners, loading, fetchOwners, deleteOwner } = useOwnersList();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
+  const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
+  const [vehiclesErrorDialogOpen, setVehiclesErrorDialogOpen] = useState(false);
+  const [vehiclesCount, setVehiclesCount] = useState(0);
 
-  const ownerValue = (identification || name) ? { id: selectedOwnerId, identification, name } : null;
+  const handleOpenModal = () => {
+    setEditingOwner(null);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setEditingOwner(null);
+  };
+
+  const handleModalSuccess = () => {
+    fetchOwners(); // Refresh the list after successful creation/update
+  };
+
+  const handleEdit = (owner: Owner) => {
+    setEditingOwner(owner);
+    setModalOpen(true);
+  };
+
+  const handleDeleteClick = (owner: Owner) => {
+    setSelectedOwner(owner);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (selectedOwner) {
+      const result = await deleteOwner(selectedOwner.id);
+      if (result.success) {
+        setDeleteDialogOpen(false);
+        setSelectedOwner(null);
+      } else if (result.error === 'OWNER_HAS_RELATED_VEHICLES') {
+        // Keep dialog open but show error message
+        // The error will be handled by a separate dialog
+        setDeleteDialogOpen(false);
+        setSelectedOwner(null);
+        // Show vehicles error dialog
+        setVehiclesErrorDialogOpen(true);
+        setVehiclesCount(result.vehiclesCount || 0);
+      }
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setSelectedOwner(null);
+  };
+
+  // Define table columns
+  const columns: TableColumn<Owner>[] = [
+    {
+      id: 'id',
+      label: 'ID',
+      minWidth: 70,
+      align: 'center',
+      sortable: true,
+    },
+    {
+      id: 'identification',
+      label: 'Identificación',
+      minWidth: 120,
+      sortable: true,
+      searchable: true,
+      format: (value: string) => formatNumber(value),
+    },
+    {
+      id: 'name',
+      label: 'Nombre',
+      minWidth: 200,
+      sortable: true,
+      searchable: true,
+      render: (value: string, row: Owner) => (
+        <Box>
+          <Box component="span" sx={{ fontWeight: 500 }}>
+            {value}
+          </Box>
+          <Box component="div" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+            ID: {row.identification}
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'phone',
+      label: 'Teléfono',
+      minWidth: 120,
+      sortable: true,
+      searchable: true,
+    },
+    {
+      id: 'email',
+      label: 'Correo Electrónico',
+      minWidth: 200,
+      sortable: true,
+      searchable: true,
+      render: (value: string) => value || '-',
+    },
+    {
+      id: 'address',
+      label: 'Dirección',
+      minWidth: 200,
+      sortable: true,
+      searchable: true,
+      render: (value: string) => value || '-',
+    },
+  ];
+
+  // Define table actions
+  const actions: TableAction<Owner>[] = [
+    {
+      label: 'Editar',
+      icon: <EditIcon />,
+      onClick: handleEdit,
+      color: 'primary',
+    },
+    {
+      label: 'Eliminar',
+      icon: <DeleteIcon />,
+      onClick: handleDeleteClick,
+      color: 'error',
+    },
+  ];
 
   return (
-    <Box maxWidth={900} mx="auto" p={1}>
-      <>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-          <PersonAddAlt1Icon color="primary" sx={{ fontSize: 28 }} />
-          <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
-            Propietarios
-          </Typography>
-        </Box>
-        <Box sx={{ height: 3, width: 170, bgcolor: 'primary.main', borderRadius: 1, mb: 2 }} />
-      </>
-      <Card>
-        <CardContent>
-          <Box component="form" onSubmit={onSubmit}>
-            <Stack spacing={2}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <Autocomplete
-                    options={idOptions}
-                    getOptionLabel={(option) => formatNumber(option.identification)}
-                    filterOptions={(x) => x}
-                    value={ownerValue}
-                    onChange={(_event, newValue) => handleOwnerSelection(newValue)}
-                    inputValue={idQuery}
-                    onInputChange={(_event, newInputValue) => {
-                      const digitsOnly = newInputValue.replace(/\D/g, '');
-                      setIdQuery(digitsOnly);
-                    }}
-                    loading={idLoading}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Buscar Identificación" size="small" fullWidth required disabled={disabledAll} />
-                    )}
-                    disabled={disabledAll}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Autocomplete
-                    options={nameOptions}
-                    getOptionLabel={(option) => option.name}
-                    value={ownerValue}
-                    onChange={(_event, newValue) => handleOwnerSelection(newValue)}
-                    inputValue={nameQuery}
-                    onInputChange={(_event, newInputValue) => setNameQuery(newInputValue)}
-                    loading={nameLoading}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Buscar Nombre" size="small" fullWidth required disabled={disabledAll} />
-                    )}
-                    disabled={disabledAll}
-                  />
-                </Box>
-              </Stack>
-
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Teléfono"
-                    size="small"
-                    fullWidth
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    required
-                    disabled={disabledAll}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    label="Correo Electrónico"
-                    size="small"
-                    fullWidth
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    disabled={disabledAll}
-                  />
-                </Box>
-              </Stack>
-
-              <TextField
-                label="Dirección"
-                size="small"
-                fullWidth
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                disabled={disabledAll}
-              />
-
-              <Box display="flex" gap={1}>
-                <Button type="submit" variant="contained" disabled={!canSubmit || disabledAll}>
-                  {submitting ? (selectedOwnerId > 0 ? 'Actualizando...' : 'Guardando...') : (selectedOwnerId > 0 ? 'Actualizar' : 'Guardar')}
-                </Button>
-                <Button type="button" variant="outlined" disabled={disabledAll} onClick={resetForm}>
-                  Limpiar
-                </Button>
-              </Box>
-            </Stack>
+    <Box maxWidth={1200} mx="auto" p={2}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+            <PersonAddIcon color="primary" sx={{ fontSize: 28 }} />
+            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
+              Propietarios
+            </Typography>
           </Box>
-        </CardContent>
-      </Card>
+          <Box sx={{ height: 3, width: 170, bgcolor: 'primary.main', borderRadius: 1 }} />
+        </Box>
+        
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleOpenModal}
+          sx={{ borderRadius: 2 }}
+        >
+          Nuevo Propietario
+        </Button>
+      </Box>
+
+      {/* Data Table */}
+      <DataTable
+        data={owners}
+        columns={columns}
+        loading={loading}
+        actions={actions}
+        searchPlaceholder="Buscar por identificación, nombre, teléfono o email..."
+        emptyMessage="No se encontraron propietarios"
+        pageSize={5}
+        stickyHeader
+        maxHeight={600}
+        exportConfig={{
+          endpoint: '/owner/export/excel',
+          filename: 'listado-propietarios.xlsx'
+        }}
+      />
+
+      {/* Floating Action Button for mobile */}
+      <Fab
+        color="primary"
+        aria-label="agregar propietario"
+        onClick={handleOpenModal}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+          display: { xs: 'flex', sm: 'none' },
+        }}
+      >
+        <AddIcon />
+      </Fab>
+
+      {/* Owner Form Modal */}
+      <OwnerFormModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        onSuccess={handleModalSuccess}
+        editOwner={editingOwner}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirmar Eliminación
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Está seguro que desea eliminar al propietario{' '}
+            <strong>{selectedOwner?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>
+            Cancelar
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Vehicles Error Dialog */}
+      <Dialog
+        open={vehiclesErrorDialogOpen}
+        onClose={() => setVehiclesErrorDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: 'warning.main' }}>
+          No se puede eliminar el propietario
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            No se puede eliminar al propietario{' '}
+            <strong>{selectedOwner?.name}</strong> porque tiene{' '}
+            <strong>{vehiclesCount}</strong> vehículo{vehiclesCount !== 1 ? 's' : ''} relacionado{vehiclesCount !== 1 ? 's' : ''}.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Para eliminar este propietario, primero debe eliminar o reasignar todos los vehículos asociados.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setVehiclesErrorDialogOpen(false)}
+            variant="contained"
+          >
+            Entendido
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

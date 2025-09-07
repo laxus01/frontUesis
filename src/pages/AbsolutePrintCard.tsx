@@ -256,7 +256,6 @@ export default function AbsolutePrintCard(): JSX.Element {
             */}
             
               {/* Nota y cabecera */}
-              <div id="note" className="field">{printableItem.note || '\u2014'}</div>
               <div id="internalNumber" className="field">{printableItem.vehicle?.internalNumber || '\u2014'}</div>
               <div id="permitExpiresOn" className="field">{fmt(printableItem.permitExpiresOn) || '\u2014'}</div>
             </div>
