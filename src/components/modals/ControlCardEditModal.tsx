@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -62,6 +62,34 @@ export default function ControlCardEditModal({
   
   // Original values to track changes
   const [originalDriverExpiresOn, setOriginalDriverExpiresOn] = useState<string | null>(null);
+
+  // Calculate maximum allowed date for permitExpiresOn based on the earliest expiration date from other documents
+  const maxPermitDate = useMemo(() => {
+    const expirationDates = [
+      soatExpires,
+      operationCardExpires,
+      contractualExpires,
+      extraContractualExpires,
+      technicalMechanicExpires
+    ].filter(date => date !== null) as Dayjs[];
+
+    if (expirationDates.length === 0) {
+      // If no expiration dates are set, allow up to 1 year from now
+      return dayjs().add(1, 'year');
+    }
+
+    // Return the earliest expiration date as the maximum allowed
+    return expirationDates.reduce((earliest, current) => 
+      current.isBefore(earliest) ? current : earliest
+    );
+  }, [soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
+
+  // Auto-adjust permitExpiresOn if it exceeds the maximum allowed date
+  useEffect(() => {
+    if (permitExpiresOn && permitExpiresOn.isAfter(maxPermitDate)) {
+      setPermitExpiresOn(maxPermitDate);
+    }
+  }, [maxPermitDate, permitExpiresOn]);
 
   // Helper function to parse date strings
   const parseDate = (dateStr?: string | null): Dayjs | null => {
@@ -174,11 +202,14 @@ export default function ControlCardEditModal({
                 value={permitExpiresOn}
                 onChange={(v) => setPermitExpiresOn(v)}
                 format="YYYY-MM-DD"
+                minDate={dayjs()}
+                maxDate={maxPermitDate}
                 slotProps={{ 
                   textField: { 
                     size: 'small', 
                     fullWidth: true,
-                    disabled: submitting
+                    disabled: submitting,
+                    required: true
                   } 
                 }}
               />

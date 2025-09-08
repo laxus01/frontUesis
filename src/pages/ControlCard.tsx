@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -365,7 +365,6 @@ export default function ControlCard(): JSX.Element {
   }, [plateQuery]);
 
   // Control Sheet (driver-vehicle) state
-  const [permitExpiresOn, setPermitExpiresOn] = useState<Dayjs | null>(dayjs().add(30, 'day'));
   const [note, setNote] = useState('');
   const [soat, setSoat] = useState('');
   const [soatExpires, setSoatExpires] = useState<Dayjs | null>(null);
@@ -374,6 +373,35 @@ export default function ControlCard(): JSX.Element {
   const [contractualExpires, setContractualExpires] = useState<Dayjs | null>(null);
   const [extraContractualExpires, setExtraContractualExpires] = useState<Dayjs | null>(null);
   const [technicalMechanicExpires, setTechnicalMechanicExpires] = useState<Dayjs | null>(null);
+  const [permitExpiresOn, setPermitExpiresOn] = useState<Dayjs | null>(dayjs().add(30, 'day'));
+
+  // Calculate maximum allowed date for permitExpiresOn based on the earliest expiration date from other documents
+  const maxPermitDate = useMemo(() => {
+    const expirationDates = [
+      soatExpires,
+      operationCardExpires,
+      contractualExpires,
+      extraContractualExpires,
+      technicalMechanicExpires
+    ].filter(date => date !== null) as Dayjs[];
+
+    if (expirationDates.length === 0) {
+      // If no expiration dates are set, allow up to 1 year from now
+      return dayjs().add(1, 'year');
+    }
+
+    // Return the earliest expiration date as the maximum allowed
+    return expirationDates.reduce((earliest, current) => 
+      current.isBefore(earliest) ? current : earliest
+    );
+  }, [soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
+
+  // Auto-adjust permitExpiresOn if it exceeds the maximum allowed date
+  useEffect(() => {
+    if (permitExpiresOn && permitExpiresOn.isAfter(maxPermitDate)) {
+      setPermitExpiresOn(maxPermitDate);
+    }
+  }, [maxPermitDate, permitExpiresOn]);
 
   const saveControlSheet = async () => {
     if (!selectedDriverId || !selectedVehicleId) {
@@ -404,12 +432,12 @@ export default function ControlCard(): JSX.Element {
       success('Tarjeta de control guardada correctamente');
 
       // Reset Control Card fields
-      setPermitExpiresOn(null);
       setSoatExpires(null);
       setOperationCardExpires(null);
       setContractualExpires(null);
       setExtraContractualExpires(null);
       setTechnicalMechanicExpires(null);
+      setPermitExpiresOn(null);
 
       // Reset Driver selection and info
       setSelectedDriverId(0);
@@ -840,21 +868,14 @@ export default function ControlCard(): JSX.Element {
                     <DatePicker
                       label="Vence"
                       value={permitExpiresOn}
-                      onChange={(v) => setPermitExpiresOn(v)}
+                      onChange={(newValue) => setPermitExpiresOn(newValue)}
                       format="YYYY-MM-DD"
                       minDate={dayjs()}
-                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                      maxDate={maxPermitDate}
+                      slotProps={{ textField: { size: 'small', fullWidth: true, required: true } }}
                     />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <TextField
-                      label="Nota"
-                      size="small"
-                      fullWidth
-                      value={note}
-                      onChange={e => setNote(e.target.value)}
-                      inputProps={{ maxLength: 500 }}
-                    />
                   </Box>
                 </Stack>
 

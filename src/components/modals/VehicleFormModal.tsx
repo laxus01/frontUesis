@@ -46,12 +46,13 @@ type WithDialogSelectorProps = {
   options: Option[];
   onChange: (id: number) => void;
   onCreate: (name: string) => Promise<Option>;
+  onNewItemCreated?: (newItem: Option) => void;
   icon: React.ReactNode;
   addButtonAria: string;
   disabled?: boolean;
 };
 
-function WithDialogSelector({ label, value, options, onChange, onCreate, icon, addButtonAria, disabled }: WithDialogSelectorProps) {
+function WithDialogSelector({ label, value, options, onChange, onCreate, onNewItemCreated, icon, addButtonAria, disabled }: WithDialogSelectorProps) {
   const { warning, error, success } = useNotify();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -110,6 +111,7 @@ function WithDialogSelector({ label, value, options, onChange, onCreate, icon, a
               try {
                 const created = await onCreate(trimmed);
                 onChange(created.id);
+                onNewItemCreated?.(created);
                 setOpen(false);
                 setName('');
                 success(`${label} creada`);
@@ -466,6 +468,7 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
                   options={makeOptions}
                   onChange={setMakeId}
                   onCreate={CatalogService.createMake}
+                  onNewItemCreated={(newItem) => setMakeOptions(prev => [...prev, newItem])}
                   icon={<DirectionsCarIcon />}
                   addButtonAria="Agregar marca"
                   disabled={disabledAll}
@@ -478,6 +481,7 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
                   options={insurerOptions}
                   onChange={setInsurerId}
                   onCreate={CatalogService.createInsurer}
+                  onNewItemCreated={(newItem) => setInsurerOptions(prev => [...prev, newItem])}
                   icon={<BusinessIcon />}
                   addButtonAria="Agregar aseguradora"
                   disabled={disabledAll}
@@ -490,6 +494,7 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
                   options={communicationCompanyOptions}
                   onChange={setCommunicationCompanyId}
                   onCreate={CatalogService.createCommunicationCompany}
+                  onNewItemCreated={(newItem) => setCommunicationCompanyOptions(prev => [...prev, newItem])}
                   icon={<CellTowerIcon />}
                   addButtonAria="Agregar empresa de comunicación"
                   disabled={disabledAll}

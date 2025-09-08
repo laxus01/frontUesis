@@ -316,7 +316,7 @@ export default function PrintControlCard(): JSX.Element {
                   onChange={(event, newValue) => {
                     handlePersonSelection(newValue as Person | null);
                   }}
-                  getOptionLabel={(option) => typeof option === 'string' ? option : formatNumber((option as Person).identification)}
+                  getOptionLabel={(option) => typeof option === 'string' ? option : `${formatNumber((option as Person).identification)} - ${(option as Person).name}`}
                   isOptionEqualToValue={(option, value) => (option as Person).id === (value as Person).id}
                   loading={idLoading}
                   freeSolo
@@ -403,19 +403,22 @@ export default function PrintControlCard(): JSX.Element {
             return (
               <Card key={item.id} className="relative print:break-inside-avoid">
                 <CardContent>
-                  {expiredDocs.length === 0 && (
-                    <Box className="!absolute top-2 right-2 flex gap-1">
-                      <IconButton
-                        size="small"
-                        aria-label="Editar tarjeta"
-                        title="Editar tarjeta"
-                        onClick={() => {
-                          setSelectedControlCard(item);
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        <EditIcon fontSize="small" color="primary" />
-                      </IconButton>
+                  <Box className="!absolute top-2 right-2 flex gap-1">
+                    {/* Edit button - always available */}
+                    <IconButton
+                      size="small"
+                      aria-label="Editar tarjeta"
+                      title="Editar tarjeta"
+                      onClick={() => {
+                        setSelectedControlCard(item);
+                        setEditModalOpen(true);
+                      }}
+                    >
+                      <EditIcon fontSize="small" color="primary" />
+                    </IconButton>
+                    
+                    {/* Print button - only available when no expired documents */}
+                    {expiredDocs.length === 0 && (
                       <IconButton
                         size="small"
                         aria-label="Imprimir tarjeta"
@@ -434,8 +437,8 @@ export default function PrintControlCard(): JSX.Element {
                       >
                         <PrintIcon fontSize="small" color="primary" />
                       </IconButton>
-                    </Box>
-                  )}
+                    )}
+                  </Box>
                   
                   <Stack spacing={1}>
                     {/* Expired Documents Alert */}
@@ -443,7 +446,7 @@ export default function PrintControlCard(): JSX.Element {
                       <Alert 
                         severity="error" 
                         icon={<WarningIcon fontSize="inherit" />}
-                        sx={{ mb: 1 }}
+                        style={{ marginTop: '30px', marginBottom: '10px' }}
                       >
                         <Typography variant="body2" fontWeight={600}>Documentos vencidos:</Typography>
                         {expiredDocs.map((doc, index) => (
