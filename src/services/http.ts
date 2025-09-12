@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Prefer Vite runtime env (Docker compose sets VITE_API_URL). Fallback to localhost.
 const VITE_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
-  'http://localhost:3000';
+  'https://backuesis-production.up.railway.app';
 
 const api = axios.create({ baseURL: String(VITE_BASE).replace(/\/$/, '') });
 
