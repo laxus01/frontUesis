@@ -7,7 +7,6 @@ import {
   Stack,
   Alert,
   IconButton,
-  Autocomplete,
   TextField,
   Chip,
   CircularProgress,
@@ -16,12 +15,14 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  InputAdornment,
 } from '@mui/material';
-import { Print as PrintIcon, Edit as EditIcon, Warning as WarningIcon } from '@mui/icons-material';
+import { Print as PrintIcon, Edit as EditIcon, Warning as WarningIcon, Search as SearchIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
 import ControlCardEditModal from '../components/modals/ControlCardEditModal';
+
 
 const formatNumber = (value: string): string => {
   if (!value) return '';
@@ -79,7 +80,7 @@ interface ExpiredDocument {
 }
 
 export default function PrintControlCard(): JSX.Element {
-  const { error } = useNotify();
+  const { error, success } = useNotify();
   const [selectedDriverId, setSelectedDriverId] = useState<number>(0);
 
   // Person search state
@@ -160,31 +161,48 @@ export default function PrintControlCard(): JSX.Element {
     if (person) {
       setSelectedDriverId(person.id);
       setIdQuery(formatNumber(person.identification));
+      // Clear options after selection to clean up the UI
+      setIdOptions([]);
     } else {
       setSelectedDriverId(0);
+      setIdQuery('');
+      setIdOptions([]);
     }
   };
 
-  useEffect(() => {
-    const q = unformatNumber(idQuery);
+  const handleSearchDriver = async () => { 
+    console.log('handleSearchDriver');
+    const q = unformatNumber(idQuery).trim();
     if (!q) {
-      setIdOptions([]);
+      console.log('Ingrese una identificación para buscar');
       return;
     }
-    const handle = setTimeout(async () => {
-      setIdLoading(true);
-      try {
-        const res = await api.get<Person[]>('/drivers', { params: { identification: q } });
-        const data = (Array.isArray(res.data) ? res.data : []).map(p => ({ ...p, name: `${p.firstName} ${p.lastName}`.trim() }));
-        setIdOptions(data);
-      } catch {
+
+    setIdLoading(true);
+    try {
+      const res = await api.get<Person[]>('/drivers', { params: { identification: q } });
+      const data = (Array.isArray(res.data) ? res.data : []).map(p => ({ ...p, name: `${p.firstName} ${p.lastName}`.trim() }));
+      
+      if (data.length === 0) {
+        error('No se encontraron conductores con esa identificación');
         setIdOptions([]);
-      } finally {
-        setIdLoading(false);
+      } else if (data.length === 1) {
+        // Auto-select if only one result
+        handlePersonSelection(data[0]);
+        setIdOptions(data);
+      } else {
+        // Multiple results
+        setIdOptions(data);
+        success(`Se encontraron ${data.length} conductores`);
       }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [idQuery]);
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Error buscando conductor';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+      setIdOptions([]);
+    } finally {
+      setIdLoading(false);
+    }
+  };
 
 
   // Vehicle autocomplete state
@@ -324,7 +342,34 @@ export default function PrintControlCard(): JSX.Element {
     fetchResults();
   }, [selectedDriverId, selectedVehicleId, error]);
 
-  // (Se removieron botones de limpiar/imprimir por solicitud)
+  const handleSearchVehicle = async () => {
+  const q = plateQuery.trim().toUpperCase();
+  if (!q) {
+    console.log('Ingrese una placa para buscar');
+    return;
+  }
+  setPlateLoading(true);
+  try {
+    const res = await api.get<any[]>('/vehicles', { params: { plate: q } });
+    const data = Array.isArray(res.data) ? res.data : [];
+    if (data.length === 1) {
+      const vehicle = data[0];
+      setPlate(String(vehicle?.plate || '').toUpperCase());
+      setSelectedVehicleId(Number(vehicle?.id || 0));
+      success(`Vehículo encontrado: ${vehicle?.plate} - ${vehicle?.model}`);
+    } else if (data.length > 1) {
+      // Multiple vehicles found
+      success(`Se encontraron ${data.length} vehículos`);
+    } else {
+      error('No se encontró ningún vehículo con esa placa');
+    }
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || 'No se pudo obtener la información';
+    error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+  } finally {
+    setPlateLoading(false);
+  }
+};
 
   return (
     <div className="space-y-3">
@@ -335,74 +380,70 @@ export default function PrintControlCard(): JSX.Element {
           <Stack spacing={2}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box sx={{ flex: 1 }}>
-                <Autocomplete
-                  options={idOptions}
-                  inputValue={idQuery}
-                  onInputChange={(event, newInputValue, reason) => {
-                    if (reason === 'input') {
-                      setIdQuery(newInputValue);
+                <TextField
+                  label="Buscar Identificación"
+                  size="small"
+                  fullWidth
+                  required
+                  value={idQuery}
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value.replace(/\D/g, '');
+                    setIdQuery(digitsOnly);
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearchDriver();
                     }
                   }}
-                  onChange={(event, newValue) => {
-                    handlePersonSelection(newValue as Person | null);
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleSearchDriver}
+                          disabled={!idQuery.trim() || idLoading}
+                          size="small"
+                        >
+                          <SearchIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
                   }}
-                  getOptionLabel={(option) => typeof option === 'string' ? option : `${formatNumber((option as Person).identification)} - ${(option as Person).name}`}
-                  isOptionEqualToValue={(option, value) => (option as Person).id === (value as Person).id}
-                  loading={idLoading}
-                  freeSolo
-                  disablePortal
-                  filterOptions={(x) => x}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Identificación del conductor"
-                      size="small"
-                      fullWidth
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {idLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
+                  disabled={false}
                 />
               </Box>
 
               <Box sx={{ flex: 1 }}>
-                <Autocomplete
-                  options={plateOptions}
-                  value={plate || null}
-                  onChange={(event, newValue) => handlePlateChange(newValue)}
-                  inputValue={plateQuery}
-                  onInputChange={(e, newInput, reason) => handlePlateInputChange(newInput, reason)}
-                  onBlur={handlePlateBlur}
-                  loading={plateLoading}
-                  freeSolo
-                  disablePortal
-                  filterOptions={(x) => x}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Placa del vehículo"
-                      size="small"
-                      fullWidth
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {plateLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Box>
+  <TextField
+    label="Placa"
+    size="small"
+    fullWidth
+    required
+    value={plateQuery}
+    onChange={(e) => {
+      const val = e.target.value.toUpperCase();
+      setPlateQuery(val);
+      setPlate(val);
+    }}
+    onKeyPress={(e) => {
+      if (e.key === 'Enter') {
+        handleSearchVehicle();
+      }
+    }}
+    InputProps={{
+      endAdornment: (
+        <InputAdornment position="end">
+          <IconButton
+            onClick={handleSearchVehicle}
+            disabled={!plateQuery.trim() || plateLoading}
+            size="small"
+          >
+            <SearchIcon />
+          </IconButton>
+        </InputAdornment>
+      ),
+    }}
+  />
+</Box>
             </Stack>
 
             {/* Botones de Limpiar/Imprimir removidos */}
@@ -471,7 +512,7 @@ export default function PrintControlCard(): JSX.Element {
                         <Typography variant="body2" fontWeight={600}>Documentos vencidos:</Typography>
                         {expiredDocs.map((doc, index) => (
                           <Typography key={index} variant="body2" sx={{ fontSize: '0.75rem' }}>
-                            • {doc.name}: {doc.date} ({doc.daysExpired} días vencido{doc.daysExpired !== 1 ? 's' : ''})
+                            - {doc.name}: {doc.date} ({doc.daysExpired} días vencido{doc.daysExpired !== 1 ? 's' : ''})
                           </Typography>
                         ))}
                       </Alert>

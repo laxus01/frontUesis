@@ -732,36 +732,36 @@ export default function ControlCard(): JSX.Element {
               <Stack spacing={2}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                  <TextField
-  label="Placa"
-  size="small"
-  fullWidth
-  required
-  value={plateQuery}
-  onChange={(e) => {
-    const val = e.target.value.toUpperCase();
-    setPlateQuery(val);
-    setPlate(val);
-  }}
-  onKeyPress={(e) => {
-    if (e.key === 'Enter') {
-      handleSearchVehicle();
-    }
-  }}
-  InputProps={{
-    endAdornment: (
-      <InputAdornment position="end">
-        <IconButton
-          onClick={handleSearchVehicle}
-          disabled={!plateQuery.trim() || plateLoading}
-          size="small"
-        >
-          <SearchIcon />
-        </IconButton>
-      </InputAdornment>
-    ),
-  }}
-/>
+                    <TextField
+                      label="Placa"
+                      size="small"
+                      fullWidth
+                      required
+                      value={plateQuery}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setPlateQuery(val);
+                        setPlate(val);
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSearchVehicle();
+                        }
+                      }}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={handleSearchVehicle}
+                              disabled={!plateQuery.trim() || plateLoading}
+                              size="small"
+                            >
+                              <SearchIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
                   </Box>
                   <Box sx={{ flex: 1 }}>
                     <TextField
