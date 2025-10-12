@@ -13,6 +13,7 @@ export interface Vehicle {
   line?: string;
   entryDate?: string;
   createdAt?: string;
+  state: number;
   make: {
     id: number;
     name: string;
@@ -78,6 +79,25 @@ export const useVehiclesList = () => {
     }
   }, [error]);
 
+  const toggleVehicleState = useCallback(async (id: number, reason: string) => {
+    try {
+      const response = await api.patch(`/vehicles/${id}/toggle-state`, { reason });
+      
+      // Update the vehicle in the local state with the new data
+      setVehicles(prev => prev.map(vehicle => 
+        vehicle.id === id ? response.data.vehicle : vehicle
+      ));
+      
+      return { success: true, data: response.data };
+    } catch (err: any) {
+      console.error('Error toggling vehicle state:', err);
+      
+      const errorMessage = err?.response?.data?.message || 'Error al cambiar el estado del vehículo';
+      error(errorMessage);
+      return { success: false, error: 'GENERIC_ERROR', message: errorMessage };
+    }
+  }, [error]);
+
   useEffect(() => {
     fetchVehicles();
   }, [fetchVehicles]);
@@ -87,5 +107,6 @@ export const useVehiclesList = () => {
     loading,
     fetchVehicles,
     deleteVehicle,
+    toggleVehicleState,
   };
 };

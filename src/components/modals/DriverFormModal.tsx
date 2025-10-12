@@ -54,6 +54,7 @@ export interface Driver {
   photo: string;
   epsId: number;
   arlId: number;
+  state: number;
   eps?: { id: number; name: string };
   arl?: { id: number; name: string };
 }

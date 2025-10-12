@@ -9,23 +9,29 @@ import {
   DialogActions,
   Fab,
   Chip,
+  TextField,
 } from '@mui/material';
 import {
   DirectionsCar as DirectionsCarIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  ToggleOn as ToggleOnIcon,
+  ToggleOff as ToggleOffIcon,
 } from '@mui/icons-material';
 import DataTable, { TableColumn, TableAction } from '../components/common/DataTable';
 import VehicleFormModal from '../components/modals/VehicleFormModal';
 import { useVehiclesList, Vehicle } from '../hooks/useVehiclesList';
 
 export default function Vehicles(): JSX.Element {
-  const { vehicles, loading, deleteVehicle, fetchVehicles } = useVehiclesList();
+  const { vehicles, loading, deleteVehicle, fetchVehicles, toggleVehicleState } = useVehiclesList();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [stateToggleDialogOpen, setStateToggleDialogOpen] = useState(false);
+  const [vehicleToToggle, setVehicleToToggle] = useState<Vehicle | null>(null);
+  const [toggleReason, setToggleReason] = useState('');
 
   const columns: TableColumn<Vehicle>[] = [
     {
@@ -86,6 +92,19 @@ export default function Vehicles(): JSX.Element {
       label: 'Línea',
       sortable: true,
       render: (value, vehicle) => vehicle.line || '-'
+    },
+    {
+      id: 'state',
+      label: 'Estado',
+      sortable: true,
+      render: (value, vehicle) => (
+        <Chip 
+          label={vehicle.state === 1 ? 'Activo' : 'Inactivo'}
+          color={vehicle.state === 1 ? 'success' : 'error'}
+          variant="filled"
+          size="small"
+        />
+      )
     }
   ];
 
@@ -99,9 +118,18 @@ export default function Vehicles(): JSX.Element {
       }
     },
     {
+      label: (vehicle: Vehicle) => vehicle.state === 1 ? 'Desactivar' : 'Activar',
+      icon: (vehicle: Vehicle) => vehicle.state === 1 ? <ToggleOffIcon /> : <ToggleOnIcon />,
+      onClick: (vehicle: Vehicle) => {
+        setVehicleToToggle(vehicle);
+        setStateToggleDialogOpen(true);
+      },
+      color: (vehicle: Vehicle) => vehicle.state === 1 ? 'warning' : 'success'
+    },
+    {
       label: 'Eliminar',
       icon: <DeleteIcon />,
-      onClick: (vehicle) => {
+      onClick: (vehicle: Vehicle) => {
         setVehicleToDelete(vehicle);
         setDeleteDialogOpen(true);
       },
@@ -129,6 +157,23 @@ export default function Vehicles(): JSX.Element {
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setVehicleToDelete(null);
+  };
+
+  const handleStateToggleConfirm = async () => {
+    if (vehicleToToggle && toggleReason.trim()) {
+      const result = await toggleVehicleState(vehicleToToggle.id, toggleReason.trim());
+      if (result.success) {
+        setStateToggleDialogOpen(false);
+        setVehicleToToggle(null);
+        setToggleReason('');
+      }
+    }
+  };
+
+  const handleStateToggleCancel = () => {
+    setStateToggleDialogOpen(false);
+    setVehicleToToggle(null);
+    setToggleReason('');
   };
 
   return (
@@ -223,6 +268,46 @@ export default function Vehicles(): JSX.Element {
             variant="contained"
           >
             Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* State Toggle Confirmation Dialog */}
+      <Dialog
+        open={stateToggleDialogOpen}
+        onClose={handleStateToggleCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {vehicleToToggle?.state === 1 ? 'Desactivar' : 'Activar'} Vehículo
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            ¿Está seguro que desea {vehicleToToggle?.state === 1 ? 'desactivar' : 'activar'} el vehículo con placa "{vehicleToToggle?.plate}"?
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Razón del cambio"
+            value={toggleReason}
+            onChange={(e) => setToggleReason(e.target.value)}
+            placeholder="Ingrese la razón del cambio de estado..."
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleStateToggleCancel}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleStateToggleConfirm} 
+            color={vehicleToToggle?.state === 1 ? 'warning' : 'success'}
+            variant="contained"
+            disabled={!toggleReason.trim()}
+          >
+            {vehicleToToggle?.state === 1 ? 'Desactivar' : 'Activar'}
           </Button>
         </DialogActions>
       </Dialog>

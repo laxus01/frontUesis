@@ -64,6 +64,38 @@ export const useDriversList = () => {
     }
   }, [error]);
 
+  const toggleDriverState = useCallback(async (id: number, reason: string) => {
+    try {
+      const response = await api.patch(`/drivers/${id}/toggle-state`, { reason });
+      
+      // Debug: Log the response to see what we're getting
+      console.log('Toggle state response:', response.data);
+      
+      // Update the driver state more robustly
+      setDrivers(prev => prev.map(driver => {
+        if (driver.id === id) {
+          // If the response contains the full driver object, use it
+          if (response.data.id) {
+            return { ...driver, ...response.data };
+          }
+          // Otherwise, just update the state field
+          const newState = response.data.state !== undefined ? response.data.state : (driver.state === 1 ? 0 : 1);
+          console.log(`Updating driver ${id} from state ${driver.state} to ${newState}`);
+          return { ...driver, state: newState };
+        }
+        return driver;
+      }));
+      
+      return { success: true, data: response.data };
+    } catch (err: any) {
+      console.error('Error toggling driver state:', err);
+      
+      const errorMessage = err?.response?.data?.message || 'Error al cambiar el estado del conductor';
+      error(errorMessage);
+      return { success: false, error: 'GENERIC_ERROR', message: errorMessage };
+    }
+  }, [error]);
+
   useEffect(() => {
     fetchDrivers();
   }, [fetchDrivers]);
@@ -74,5 +106,6 @@ export const useDriversList = () => {
     fetchDrivers,
     deleteDriver,
     updateDriver,
+    toggleDriverState
   };
 };

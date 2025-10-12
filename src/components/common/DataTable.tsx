@@ -42,10 +42,10 @@ export interface TableColumn<T = any> {
 }
 
 export interface TableAction<T = any> {
-  label: string;
-  icon: React.ReactNode;
+  label: string | ((row: T) => string);
+  icon: React.ReactNode | ((row: T) => React.ReactNode);
   onClick: (row: T) => void;
-  color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success' | ((row: T) => 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success');
   disabled?: (row: T) => boolean;
   show?: (row: T) => boolean;
 }
@@ -362,23 +362,29 @@ export function DataTable<T extends Record<string, any>>({
                       <Box display="flex" justifyContent="center" gap={0.5}>
                         {actions
                           .filter(action => !action.show || action.show(row))
-                          .map((action, index) => (
-                            <Tooltip key={index} title={action.label}>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  color={action.color || 'primary'}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    action.onClick(row);
-                                  }}
-                                  disabled={action.disabled ? action.disabled(row) : false}
-                                >
-                                  {action.icon}
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          ))}
+                          .map((action, index) => {
+                            const label = typeof action.label === 'function' ? action.label(row) : action.label;
+                            const icon = typeof action.icon === 'function' ? action.icon(row) : action.icon;
+                            const color = typeof action.color === 'function' ? action.color(row) : (action.color || 'primary');
+                            
+                            return (
+                              <Tooltip key={index} title={label}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color={color}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      action.onClick(row);
+                                    }}
+                                    disabled={action.disabled ? action.disabled(row) : false}
+                                  >
+                                    {icon}
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            );
+                          })}
                       </Box>
                     </TableCell>
                   )}

@@ -11,15 +11,24 @@ import {
   ListItem,
   ListItemText,
   Alert,
+  Chip,
+  TextField,
 } from '@mui/material';
-import { Add as AddIcon, Edit, Delete, PersonAddAlt1 as PersonAddAlt1Icon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Edit, 
+  Delete, 
+  PersonAddAlt1 as PersonAddAlt1Icon,
+  ToggleOn as ToggleOnIcon,
+  ToggleOff as ToggleOffIcon,
+} from '@mui/icons-material';
 import { DataTable } from '../components/common/DataTable';
 import DriverFormModal, { Driver } from '../components/modals/DriverFormModal';
 import { useDriversList } from '../hooks/useDriversList';
 import type { TableColumn, TableAction } from '../components/common/DataTable';
 
 export default function Drivers() {
-  const { drivers, loading, fetchDrivers, deleteDriver } = useDriversList();
+  const { drivers, loading, fetchDrivers, deleteDriver, toggleDriverState } = useDriversList();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -27,7 +36,9 @@ export default function Drivers() {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [deleteError, setDeleteError] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
+  const [stateToggleDialogOpen, setStateToggleDialogOpen] = useState(false);
+  const [driverToToggle, setDriverToToggle] = useState<Driver | null>(null);
+  const [toggleReason, setToggleReason] = useState('');
 
   const handleAdd = () => {
     setSelectedDriver(null);
@@ -74,6 +85,28 @@ export default function Drivers() {
     setDeleteError(null);
   };
 
+  const handleStateToggleConfirm = async () => {
+    if (driverToToggle && toggleReason.trim()) {
+      const result = await toggleDriverState(driverToToggle.id, toggleReason.trim());
+      if (result.success) {
+        setStateToggleDialogOpen(false);
+        setDriverToToggle(null);
+        setToggleReason('');
+        
+        // Refresh the drivers list to ensure UI is in sync
+        // This is a fallback in case the local state update doesn't work properly
+        setTimeout(() => {
+          fetchDrivers();
+        }, 100);
+      }
+    }
+  };
+
+  const handleStateToggleCancel = () => {
+    setStateToggleDialogOpen(false);
+    setDriverToToggle(null);
+    setToggleReason('');
+  };
 
   const columns: TableColumn<Driver>[] = [
     {
@@ -166,6 +199,19 @@ export default function Drivers() {
       label: 'Tipo Sangre',
       sortable: true,
     },
+    {
+      id: 'state',
+      label: 'Estado',
+      sortable: true,
+      render: (value, driver) => (
+        <Chip 
+          label={driver.state === 1 ? 'Activo' : 'Inactivo'}
+          color={driver.state === 1 ? 'success' : 'error'}
+          variant="filled"
+          size="small"
+        />
+      )
+    },
   ];
 
   const actions: TableAction<Driver>[] = [
@@ -176,13 +222,21 @@ export default function Drivers() {
       color: 'primary',
     },
     {
+      label: driver => driver.state === 1 ? 'Desactivar' : 'Activar',
+      icon: (driver) => driver.state === 1 ? <ToggleOffIcon /> : <ToggleOnIcon />,
+      onClick: (driver) => {
+        setDriverToToggle(driver);
+        setStateToggleDialogOpen(true);
+      },
+      color: (driver) => driver.state === 1 ? 'warning' : 'success'
+    },
+    {
       label: 'Eliminar',
       icon: <Delete />,
       onClick: handleDelete,
       color: 'error',
     },
   ];
-
 
   return (
     <Box maxWidth={1200} mx="auto" p={2}>
@@ -259,7 +313,6 @@ export default function Drivers() {
                     </Typography>
                   </Alert>
                   
-                  
                   <List dense>
                     {deleteError.data?.assignedVehicles?.map((vehicle: any) => (
                       <ListItem key={vehicle.vehicleId} sx={{ py: 0.5 }}>
@@ -309,6 +362,47 @@ export default function Drivers() {
               {isDeleting ? 'Eliminando...' : 'Eliminar'}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* State Toggle Confirmation Dialog */}
+      <Dialog
+        open={stateToggleDialogOpen}
+        onClose={handleStateToggleCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {driverToToggle?.state === 1 ? 'Desactivar' : 'Activar'} Conductor
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            ¿Está seguro que desea {driverToToggle?.state === 1 ? 'desactivar' : 'activar'} al conductor{' '}
+            <strong>{driverToToggle?.firstName} {driverToToggle?.lastName}</strong>?
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Razón del cambio"
+            value={toggleReason}
+            onChange={(e) => setToggleReason(e.target.value)}
+            placeholder="Ingrese la razón del cambio de estado..."
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleStateToggleCancel}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleStateToggleConfirm} 
+            color={driverToToggle?.state === 1 ? 'warning' : 'success'}
+            variant="contained"
+            disabled={!toggleReason.trim()}
+          >
+            {driverToToggle?.state === 1 ? 'Desactivar' : 'Activar'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
