@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Autocomplete, Box, Button, Card, CardContent, CircularProgress, IconButton, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PrintIcon from '@mui/icons-material/Print';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { DatePicker } from '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 import api from '../services/http';
@@ -26,6 +27,7 @@ const AdministrationPayments: React.FC = () => {
 
   // Estado común
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [items, setItems] = useState<Administration[]>([]);
   const [searchTitle, setSearchTitle] = useState<string>('');
 
@@ -77,7 +79,7 @@ const AdministrationPayments: React.FC = () => {
     setPlate(String(vehicle.plate || ''));
     setSelectedVehicleId(vehicle.id);
     setPlateQuery(String(vehicle.plate || ''));
-        setOwnerId(formatNumber(String(vehicle.owner?.identification || '')));
+    setOwnerId(formatNumber(String(vehicle.owner?.identification || '')));
     setOwnerName(String(vehicle.owner?.name || ''));
   };
 
@@ -219,6 +221,56 @@ const AdministrationPayments: React.FC = () => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      let payload: any;
+      let filename: string;
+      let endpoint: string;
+
+      if (mode === 'date') {
+        if (!startDate || !endDate) return;
+        payload = {
+          startDate: startDate.format('YYYY-MM-DD'),
+          endDate: endDate.format('YYYY-MM-DD'),
+        };
+        filename = `administraciones_${payload.startDate}_${payload.endDate}.xlsx`;
+        endpoint = '/administrations/date-range/export/excel';
+      } else if (mode === 'vehicle') {
+        if (!selectedVehicleId) return;
+        payload = { vehicleId: selectedVehicleId };
+        filename = `administraciones_vehiculo_${plate}.xlsx`;
+        endpoint = '/administrations/vehicle/export/excel';
+      } else if (mode === 'owner') {
+        if (!selectedOwner || !selectedOwner.id) return;
+        payload = { ownerId: selectedOwner.id };
+        filename = `administraciones_propietario_${selectedOwner.identification}.xlsx`;
+        endpoint = '/administrations/owner/export/excel';
+      } else {
+        return;
+      }
+
+      const response = await api.post(endpoint, payload, {
+        responseType: 'blob',
+      });
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      success('Archivo exportado correctamente');
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Error al exportar';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleClear = () => {
     setItems([]);
     setSearchTitle('');
@@ -249,7 +301,7 @@ const AdministrationPayments: React.FC = () => {
       const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
       const url = `${base}/absolute-print-administration${params.toString() ? `?${params.toString()}` : ''}`;
       window.open(url, '_blank', 'noopener,noreferrer,width=600,height=600');
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -424,7 +476,16 @@ const AdministrationPayments: React.FC = () => {
               <Button variant="contained" disabled={!canSubmit || submitting} onClick={handleSubmit}>
                 {submitting ? 'CONSULTANDO...' : 'CONSULTAR'}
               </Button>
-              <Button variant="outlined" onClick={handleClear} disabled={submitting}>
+              <Button
+                variant="contained"
+                color="success"
+                disabled={!canSubmit || exporting || submitting}
+                onClick={handleExport}
+                startIcon={<FileDownloadIcon />}
+              >
+                {exporting ? 'EXPORTANDO...' : 'EXPORTAR'}
+              </Button>
+              <Button variant="outlined" onClick={handleClear} disabled={submitting || exporting}>
                 LIMPIAR
               </Button>
             </Box>

@@ -1,3 +1,5 @@
+import React from 'react';
+import { Chip } from '@mui/material';
 import { TableColumn } from '../components/common/DataTable';
 
 // Common column configurations for reuse across different tables
@@ -73,16 +75,12 @@ export const commonColumns = {
     align: 'center',
     sortable: true,
     render: (value: boolean) => (
-      <span style={{ 
-        padding: '4px 8px', 
-        borderRadius: '4px', 
-        fontSize: '0.75rem',
-        backgroundColor: value ? '#e8f5e8' : '#f5f5f5',
-        color: value ? '#2e7d32' : '#757575',
-        fontWeight: 500
-      }}>
-        {value ? 'Activo' : 'Inactivo'}
-      </span>
+      <Chip
+        label={value ? 'Activo' : 'Inactivo'}
+        color={value ? 'success' : 'default'}
+        size="small"
+        variant="filled"
+      />
     ),
   }),
 };
@@ -114,7 +112,7 @@ export const tableUtils = {
   },
 
   // Create a searchable text from multiple fields
-  createSearchableText: <T>(row: T, fields: (keyof T)[]): string => {
+  createSearchableText: <T extends object>(row: T, fields: (keyof T)[]): string => {
     return fields
       .map(field => String(row[field] || ''))
       .join(' ')
@@ -122,7 +120,7 @@ export const tableUtils = {
   },
 
   // Sort function for complex objects
-  sortByPath: <T>(path: string) => (a: T, b: T): number => {
+  sortByPath: <T extends object>(path: string) => (a: T, b: T): number => {
     const getValue = (obj: any, path: string): any => {
       return path.split('.').reduce((current, key) => current?.[key], obj);
     };

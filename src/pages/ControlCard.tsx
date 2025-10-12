@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogActions,
   Autocomplete,
+  InputAdornment,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import type { Dayjs } from 'dayjs';
@@ -32,6 +33,8 @@ import CatalogService, { Option } from '../services/catalog.service';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
 import { formatNumber } from '../utils/formatting';
+import SearchIcon from '@mui/icons-material/Search';
+import { BLOOD_TYPES, CATEGORIES } from '../constants/controlCard';
 
 // Simple accordion section component
 function AccordionSection({
@@ -87,16 +90,8 @@ function AccordionSection({
   );
 }
 
-// Constants
-const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
-const CATEGORIES = ['C1', 'C2', 'C3'];
-
-// Subcomponents
 type PhotoUploaderProps = {
   photo: string;
-  photoFilename: string; // kept for compatibility; not used
-  disabled: boolean; // kept for compatibility; not used
-  onChange: (url: string, filename: string) => void; // kept for compatibility; not used
 };
 
 function PhotoUploader({ photo }: PhotoUploaderProps) {
@@ -248,6 +243,7 @@ export default function ControlCard(): JSX.Element {
   const [insurers, setInsurers] = useState<Option[]>([]);
   const [communicationCompanies, setCommunicationCompanies] = useState<Option[]>([]);
   const [owners, setOwners] = useState<Option[]>([]);
+  const [plateLoading, setPlateLoading] = useState(false);
 
   const disabledAll = loading || submitting;
 
@@ -277,30 +273,6 @@ export default function ControlCard(): JSX.Element {
     load();
   }, [warning, error]);
 
-  // Se removió envío y validación de formulario
-
-  // Driver search effect
-  useEffect(() => {
-    const q = idQuery.trim().replace(/[,.]/g, '');
-    if (!q) {
-      setIdOptions([]);
-      return;
-    }
-    const handle = setTimeout(async () => {
-      setIdLoading(true);
-      try {
-        const res = await api.get<any[]>('/drivers', { params: { identification: q } });
-        const data = Array.isArray(res.data) ? res.data : [];
-        setIdOptions(data.map(d => ({ ...d, name: `${d.firstName} ${d.lastName}`.trim() })));
-      } catch {
-        setIdOptions([]);
-      } finally {
-        setIdLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [idQuery]);
-
   const handleDriverSelection = (driver: any | null) => {
     if (driver) {
       setSelectedDriverId(driver.id);
@@ -328,6 +300,77 @@ export default function ControlCard(): JSX.Element {
     }
   };
 
+  const handleSearchDriver = async () => {
+    const q = idQuery.trim().replace(/[,.]/g, '');
+    if (!q) {
+      warning('Ingrese una identificación para buscar');
+      return;
+    }
+
+    setIdLoading(true);
+    try {
+      const res = await api.get<any[]>('/drivers', { params: { identification: q } });
+      const data = Array.isArray(res.data) ? res.data : [];
+      const drivers = data.map(d => ({ ...d, name: `${d.firstName} ${d.lastName}`.trim() }));
+
+      if (drivers.length === 0) {
+        warning('No se encontraron conductores con esa identificación');
+        setIdOptions([]);
+      } else if (drivers.length === 1) {
+        // Auto-select if only one result
+        handleDriverSelection(drivers[0]);
+        setIdOptions(drivers);
+      } else {
+        // Multiple results - you might want to show a selection dialog
+        setIdOptions(drivers);
+        success(`Se encontraron ${drivers.length} conductores`);
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Error buscando conductor';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+      setIdOptions([]);
+    } finally {
+      setIdLoading(false);
+    }
+  };
+
+  const handleSearchVehicle = async () => {
+    const q = plateQuery.trim().toUpperCase();
+    if (!q) {
+      warning('Ingrese una placa para buscar');
+      return;
+    }
+    setPlateLoading(true);
+    try {
+      const res = await api.get<any[]>('/vehicles', { params: { plate: q } });
+      const data = Array.isArray(res.data) ? res.data : [];
+      if (data.length === 1) {
+        const vehicle = data[0];
+        setPlate(String(vehicle?.plate || '').toUpperCase());
+        setModel(String(vehicle?.model || ''));
+        setInternalNumber(String(vehicle?.internalNumber || ''));
+        setMobileNumber(String(vehicle?.mobileNumber || ''));
+        setMakeId(Number(vehicle?.make?.id || 0));
+        setInsurerId(Number(vehicle?.insurer?.id || 0));
+        setCommunicationCompanyId(Number(vehicle?.communicationCompany?.id || 0));
+        setOwnerId(Number(vehicle?.owner?.id || 0));
+        setOwnerName(String(vehicle?.owner?.name || ''));
+        setSelectedVehicleId(Number(vehicle?.id || 0));
+        success(`Vehículo encontrado: ${vehicle?.plate} - ${vehicle?.model}`);
+      } else if (data.length > 1) {
+        setIdOptions(data);
+        success(`Se encontraron ${data.length} conductores`);
+      } else {
+        warning('No se encontró ningún vehículo con esa placa');
+      }
+    } catch (error) {
+      console.error('Error searching vehicle:', error);
+      warning('Error al buscar el vehículo');
+    } finally {
+      setPlateLoading(false);
+    }
+  };
+
   // Vehicle: state and search by plate (read-only UI except plate autocomplete)
   const [plate, setPlate] = useState('');
   const [model, setModel] = useState('');
@@ -341,28 +384,6 @@ export default function ControlCard(): JSX.Element {
   const [selectedVehicleId, setSelectedVehicleId] = useState<number>(0);
 
   const [plateQuery, setPlateQuery] = useState('');
-  const [plateOptions, setPlateOptions] = useState<string[]>([]);
-  const [plateResults, setPlateResults] = useState<any[]>([]);
-  const [plateLoading, setPlateLoading] = useState(false);
-  useEffect(() => {
-    const q = plateQuery.trim();
-    if (!q) { setPlateOptions([]); return; }
-    const handle = setTimeout(async () => {
-      setPlateLoading(true);
-      try {
-        const res = await api.get<any[]>('/vehicles', { params: { plate: q } });
-        const data = Array.isArray(res.data) ? res.data : [];
-        setPlateResults(data);
-        const plates = Array.from(new Set(data.map((v: any) => String(v?.plate || '').trim()).filter(Boolean)));
-        setPlateOptions(plates);
-      } catch {
-        setPlateOptions([]);
-      } finally {
-        setPlateLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [plateQuery]);
 
   // Control Sheet (driver-vehicle) state
   const [note, setNote] = useState('');
@@ -391,7 +412,7 @@ export default function ControlCard(): JSX.Element {
     }
 
     // Return the earliest expiration date as the maximum allowed
-    return expirationDates.reduce((earliest, current) => 
+    return expirationDates.reduce((earliest, current) =>
       current.isBefore(earliest) ? current : earliest
     );
   }, [soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
@@ -492,29 +513,37 @@ export default function ControlCard(): JSX.Element {
             <Box>
               <Stack spacing={2}>
                 {/* Foto */}
-                <PhotoUploader
-                  photo={photo}
-                  photoFilename={photoFilename}
-                  disabled={disabledAll}
-                  onChange={(url, filename) => { setPhoto(url); setPhotoFilename(filename); }}
-                />
+                <PhotoUploader photo={photo} />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                    <Autocomplete
-                      options={idOptions}
-                      getOptionLabel={(option) => formatNumber(option.identification)}
-                      filterOptions={(x) => x}
-                      value={idOptions.find(opt => opt.identification === identification.replace(/[,.]/g, '')) || null}
-                      onChange={(_event, newValue) => handleDriverSelection(newValue)}
-                      inputValue={idQuery}
-                      onInputChange={(_event, newInputValue) => {
-                        const digitsOnly = newInputValue.replace(/\D/g, '');
+                    <TextField
+                      label="Buscar Identificación"
+                      size="small"
+                      fullWidth
+                      required
+                      value={idQuery}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '');
                         setIdQuery(digitsOnly);
                       }}
-                      loading={idLoading}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Buscar Identificación" size="small" fullWidth required disabled={false} />
-                      )}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSearchDriver();
+                        }
+                      }}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={handleSearchDriver}
+                              disabled={!idQuery.trim() || idLoading}
+                              size="small"
+                            >
+                              <SearchIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
                       disabled={false}
                     />
                   </Box>
@@ -703,47 +732,36 @@ export default function ControlCard(): JSX.Element {
               <Stack spacing={2}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                    <Autocomplete
-                      options={plateOptions}
-                      value={plate || null}
-                      onChange={(event, newValue) => {
-                        const val = (newValue || '').toUpperCase();
-                        setPlate(val);
-                        if (val) {
-                          const found = plateResults.find((v) => String(v?.plate).trim().toUpperCase() === val.trim());
-                          if (found) {
-                            setModel(String(found?.model || ''));
-                            setInternalNumber(String(found?.internalNumber || ''));
-                            setMobileNumber(String(found?.mobileNumber || ''));
-                            setMakeId(Number(found?.make?.id || 0));
-                            setInsurerId(Number(found?.insurer?.id || 0));
-                            setCommunicationCompanyId(Number(found?.communicationCompany?.id || 0));
-                            setOwnerId(Number(found?.owner?.id || 0));
-                            setOwnerName(String(found?.owner?.name || ''));
-                            setSelectedVehicleId(Number(found?.id || 0));
-                          }
-                        }
-                      }}
-                      inputValue={plateQuery}
-                      onInputChange={(e, newInput) => {
-                        const next = (newInput || '').toUpperCase();
-                        setPlateQuery(next);
-                        setPlate(next);
-                      }}
-                      loading={plateLoading}
-                      freeSolo
-                      disablePortal
-                      filterOptions={(x) => x}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Placa"
-                          size="small"
-                          fullWidth
-                          required
-                        />
-                      )}
-                    />
+                  <TextField
+  label="Placa"
+  size="small"
+  fullWidth
+  required
+  value={plateQuery}
+  onChange={(e) => {
+    const val = e.target.value.toUpperCase();
+    setPlateQuery(val);
+    setPlate(val);
+  }}
+  onKeyPress={(e) => {
+    if (e.key === 'Enter') {
+      handleSearchVehicle();
+    }
+  }}
+  InputProps={{
+    endAdornment: (
+      <InputAdornment position="end">
+        <IconButton
+          onClick={handleSearchVehicle}
+          disabled={!plateQuery.trim() || plateLoading}
+          size="small"
+        >
+          <SearchIcon />
+        </IconButton>
+      </InputAdornment>
+    ),
+  }}
+/>
                   </Box>
                   <Box sx={{ flex: 1 }}>
                     <TextField
@@ -892,14 +910,14 @@ export default function ControlCard(): JSX.Element {
                     />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                      <DatePicker
-                        label="Vence"
-                        value={soatExpires}
-                        onChange={(v) => setSoatExpires(v)}
-                        format="YYYY-MM-DD"
-                        minDate={dayjs()}
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
+                    <DatePicker
+                      label="Vence"
+                      value={soatExpires}
+                      onChange={(v) => setSoatExpires(v)}
+                      format="YYYY-MM-DD"
+                      minDate={dayjs()}
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                 </Stack>
 
@@ -916,48 +934,48 @@ export default function ControlCard(): JSX.Element {
                     />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                      <DatePicker
-                        label="Vence"
-                        value={operationCardExpires}
-                        onChange={(v) => setOperationCardExpires(v)}
-                        format="YYYY-MM-DD"
-                        minDate={dayjs()}
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
+                    <DatePicker
+                      label="Vence"
+                      value={operationCardExpires}
+                      onChange={(v) => setOperationCardExpires(v)}
+                      format="YYYY-MM-DD"
+                      minDate={dayjs()}
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                 </Stack>
 
                 <label>OTROS DOCUMENTOS</label>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
-                      <DatePicker
-                        label="Contractual vence"
-                        value={contractualExpires}
-                        onChange={(v) => setContractualExpires(v)}
-                        format="YYYY-MM-DD"
-                        minDate={dayjs()}
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
+                    <DatePicker
+                      label="Contractual vence"
+                      value={contractualExpires}
+                      onChange={(v) => setContractualExpires(v)}
+                      format="YYYY-MM-DD"
+                      minDate={dayjs()}
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                      <DatePicker
-                        label="Extracontractual vence"
-                        value={extraContractualExpires}
-                        onChange={(v) => setExtraContractualExpires(v)}
-                        format="YYYY-MM-DD"
-                        minDate={dayjs()}
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
+                    <DatePicker
+                      label="Extracontractual vence"
+                      value={extraContractualExpires}
+                      onChange={(v) => setExtraContractualExpires(v)}
+                      format="YYYY-MM-DD"
+                      minDate={dayjs()}
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                      <DatePicker
-                        label="Tecnomecánica vence"
-                        value={technicalMechanicExpires}
-                        onChange={(v) => setTechnicalMechanicExpires(v)}
-                        format="YYYY-MM-DD"
-                        minDate={dayjs()}
-                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                      />
+                    <DatePicker
+                      label="Tecnomecánica vence"
+                      value={technicalMechanicExpires}
+                      onChange={(v) => setTechnicalMechanicExpires(v)}
+                      format="YYYY-MM-DD"
+                      minDate={dayjs()}
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
                   </Box>
                 </Stack>
 

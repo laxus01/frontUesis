@@ -11,6 +11,11 @@ import {
   TextField,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import { Print as PrintIcon, Edit as EditIcon, Warning as WarningIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -74,14 +79,16 @@ interface ExpiredDocument {
 }
 
 export default function PrintControlCard(): JSX.Element {
-    const { error } = useNotify();
+  const { error } = useNotify();
   const [selectedDriverId, setSelectedDriverId] = useState<number>(0);
-  
+
   // Person search state
   const [idQuery, setIdQuery] = useState('');
   const [idOptions, setIdOptions] = useState<Person[]>([]);
   const [idLoading, setIdLoading] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Person | null>(null);
+  const [printConfirmOpen, setPrintConfirmOpen] = useState(false);
+  const [itemToPrint, setItemToPrint] = useState<DriverVehicleRes | null>(null);
 
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -92,10 +99,33 @@ export default function PrintControlCard(): JSX.Element {
     setSelectedControlCard(null);
   };
 
+  const handlePrintClick = (item: DriverVehicleRes) => {
+    setItemToPrint(item);
+    setPrintConfirmOpen(true);
+  };
+  const handlePrintConfirm = () => {
+    if (itemToPrint) {
+      const dvId = itemToPrint?.id ? String(itemToPrint.id) : '';
+      const params = new URLSearchParams();
+      if (dvId) params.set('dvId', dvId);
+      const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
+      const url = `${base}/absolute-print${params.toString() ? `?${params.toString()}` : ''}`;
+      try {
+        window.open(url, '_blank', 'noopener,noreferrer,width=1200,height=700');
+      } catch { }
+    }
+    setPrintConfirmOpen(false);
+    setItemToPrint(null);
+  };
+  const handlePrintCancel = () => {
+    setPrintConfirmOpen(false);
+    setItemToPrint(null);
+  };
+
   const handleEditSuccess = async () => {
     // Refresh the results after successful edit by refetching data
     if (!selectedDriverId && !selectedVehicleId) return;
-    
+
     setLoadingResults(true);
     try {
       let data: DriverVehicleRes[] = [];
@@ -163,7 +193,7 @@ export default function PrintControlCard(): JSX.Element {
   const [plateResults, setPlateResults] = useState<VehicleLite[]>([]);
   const [plateLoading, setPlateLoading] = useState(false);
   const [plate, setPlate] = useState('');
-    const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
 
   const handlePlateChange = (newValue: string | null) => {
     const val = (newValue || '').toUpperCase();
@@ -197,7 +227,7 @@ export default function PrintControlCard(): JSX.Element {
   const getExpiredDocuments = (item: DriverVehicleRes): ExpiredDocument[] => {
     const today = dayjs();
     const expired: ExpiredDocument[] = [];
-    
+
     const checkDate = (date: string | null | undefined, name: string) => {
       if (date) {
         const expDate = dayjs(String(date).slice(0, 10));
@@ -215,7 +245,7 @@ export default function PrintControlCard(): JSX.Element {
     if (item.driver?.expiresOn) {
       checkDate(item.driver.expiresOn, 'Licencia de conducir');
     }
-    
+
     // Check all document expiration dates
     checkDate(item.permitExpiresOn, 'Permiso');
     checkDate(item.technicalMechanicExpires, 'Tecnomecánica');
@@ -223,7 +253,7 @@ export default function PrintControlCard(): JSX.Element {
     checkDate(item.contractualExpires, 'Contractual');
     checkDate(item.operationCardExpires, 'Tarjeta de operación');
     checkDate(item.soatExpires, 'SOAT');
-    
+
     return expired.sort((a, b) => b.daysExpired - a.daysExpired);
   };
 
@@ -262,13 +292,13 @@ export default function PrintControlCard(): JSX.Element {
     console.log('selectedDriverId', selectedDriverId);
     console.log('selectedVehicleId', selectedVehicleId);
     const fetchResults = async () => {
-            if (!selectedDriverId && !selectedVehicleId) { setResults([]); return; }
+      if (!selectedDriverId && !selectedVehicleId) { setResults([]); return; }
       setLoadingResults(true);
       try {
         let data: DriverVehicleRes[] = [];
         if (selectedDriverId && selectedVehicleId) {
           // Fetch by both and intersect on vehicle/driver id
-                    const [byDriver, byVehicle] = await Promise.all([
+          const [byDriver, byVehicle] = await Promise.all([
             api.get<DriverVehicleRes[]>(`/driver-vehicles/by-driver/${selectedDriverId}`),
             api.get<DriverVehicleRes[]>(`/driver-vehicles/by-vehicle/${selectedVehicleId}`),
           ]);
@@ -276,7 +306,7 @@ export default function PrintControlCard(): JSX.Element {
           const b = Array.isArray(byVehicle.data) ? byVehicle.data : [];
           const setB = new Set(b.map(x => `${x.driver?.id}-${x.vehicle?.id}`));
           data = a.filter(x => setB.has(`${x.driver?.id}-${x.vehicle?.id}`));
-                } else if (selectedDriverId) {
+        } else if (selectedDriverId) {
           const res = await api.get<DriverVehicleRes[]>(`/driver-vehicles/by-driver/${selectedDriverId}`);
           data = Array.isArray(res.data) ? res.data : [];
         } else if (selectedVehicleId) {
@@ -291,7 +321,7 @@ export default function PrintControlCard(): JSX.Element {
         setLoadingResults(false);
       }
     };
-        fetchResults();
+    fetchResults();
   }, [selectedDriverId, selectedVehicleId, error]);
 
   // (Se removieron botones de limpiar/imprimir por solicitud)
@@ -388,7 +418,7 @@ export default function PrintControlCard(): JSX.Element {
           {loadingResults && <CircularProgress size={18} />}
         </div>
 
-                {(!loadingResults && results.length === 0 && (selectedDriverId || selectedVehicleId)) && (
+        {(!loadingResults && results.length === 0 && (selectedDriverId || selectedVehicleId)) && (
           <Typography variant="body2" color="text.secondary">No hay resultados.</Typography>
         )}
 
@@ -397,9 +427,9 @@ export default function PrintControlCard(): JSX.Element {
             const d = item.driver || {};
             const v = item.vehicle || {};
             const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ');
-            const fmt = (s?: string | null) => s ? dayjs(String(s).slice(0,10)).format('YYYY-MM-DD') : '';
+            const fmt = (s?: string | null) => s ? dayjs(String(s).slice(0, 10)).format('YYYY-MM-DD') : '';
             const expiredDocs = getExpiredDocuments(item);
-            
+
             return (
               <Card key={item.id} className="relative print:break-inside-avoid">
                 <CardContent>
@@ -416,35 +446,25 @@ export default function PrintControlCard(): JSX.Element {
                     >
                       <EditIcon fontSize="small" color="primary" />
                     </IconButton>
-                    
+
                     {/* Print button - only available when no expired documents */}
                     {expiredDocs.length === 0 && (
                       <IconButton
                         size="small"
                         aria-label="Imprimir tarjeta"
                         title="Imprimir tarjeta"
-                        onClick={() => {
-                          // Solo enviar el id del registro drivers_vehicles (dvId) en la URL
-                          const dvId = item?.id ? String(item.id) : '';
-                          const params = new URLSearchParams();
-                          if (dvId) params.set('dvId', dvId);
-                          const base = (typeof window !== 'undefined' ? window.location.origin : '') || '';
-                          const url = `${base}/absolute-print${params.toString() ? `?${params.toString()}` : ''}`;
-                          try {
-                            window.open(url, '_blank', 'noopener,noreferrer,width=1200,height=700');
-                          } catch {}
-                        }}
+                        onClick={() => handlePrintClick(item)}
                       >
                         <PrintIcon fontSize="small" color="primary" />
                       </IconButton>
                     )}
                   </Box>
-                  
+
                   <Stack spacing={1}>
                     {/* Expired Documents Alert */}
                     {expiredDocs.length > 0 && (
-                      <Alert 
-                        severity="error" 
+                      <Alert
+                        severity="error"
                         icon={<WarningIcon fontSize="inherit" />}
                         style={{ marginTop: '30px', marginBottom: '10px' }}
                       >
@@ -456,7 +476,7 @@ export default function PrintControlCard(): JSX.Element {
                         ))}
                       </Alert>
                     )}
-                    
+
                     <Typography variant="subtitle1" fontWeight={600}>Conductor</Typography>
                     <Typography variant="body2">{fullName || '—'}</Typography>
                     <Typography variant="body2">ID: {d.identification || '—'}</Typography>
@@ -491,6 +511,43 @@ export default function PrintControlCard(): JSX.Element {
         onSuccess={handleEditSuccess}
         controlCardData={selectedControlCard}
       />
+
+      {/* Print Confirmation Dialog */}
+      <Dialog
+        open={printConfirmOpen}
+        onClose={handlePrintCancel}
+        aria-labelledby="print-dialog-title"
+      >
+        <DialogTitle id="print-dialog-title">
+          Confirmar Impresión
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Está seguro que desea imprimir la tarjeta de control para:
+          </Typography>
+          {itemToPrint && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="body2">
+                <strong>Conductor:</strong> {itemToPrint.driver?.firstName} {itemToPrint.driver?.lastName}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Identificación:</strong> {formatNumber(itemToPrint.driver?.identification || '')}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Vehículo:</strong> {itemToPrint.vehicle?.plate}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlePrintCancel} color="inherit">
+            Cancelar
+          </Button>
+          <Button onClick={handlePrintConfirm} variant="contained" color="primary">
+            Imprimir
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }
