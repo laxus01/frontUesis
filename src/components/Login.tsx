@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/auth.service';
 
 const Login: React.FC = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [message, setMessage] = useState<string>('');
@@ -13,9 +15,11 @@ const Login: React.FC = () => {
     setMessage('');
     setLoading(true);
     try {
-      await AuthService.login(user, password);
-      // Redirigir a la raíz para mostrar el componente Home
-      window.location.href = '/';
+      const response = await AuthService.login(user, password);
+      // Disparar evento para que App.tsx actualice el estado de autenticación
+      window.dispatchEvent(new Event('authChange'));
+      // Navegar sin recargar la página
+      navigate('/', { replace: true });
     } catch (error: any) {
       const resMessage =
         (error.response &&

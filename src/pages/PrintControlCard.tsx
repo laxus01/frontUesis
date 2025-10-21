@@ -170,7 +170,7 @@ export default function PrintControlCard(): JSX.Element {
     }
   };
 
-  const handleSearchDriver = async () => { 
+  const handleSearchDriver = async () => {
     console.log('handleSearchDriver');
     const q = unformatNumber(idQuery).trim();
     if (!q) {
@@ -182,7 +182,7 @@ export default function PrintControlCard(): JSX.Element {
     try {
       const res = await api.get<Person[]>('/drivers', { params: { identification: q } });
       const data = (Array.isArray(res.data) ? res.data : []).map(p => ({ ...p, name: `${p.firstName} ${p.lastName}`.trim() }));
-      
+
       if (data.length === 0) {
         error('No se encontraron conductores con esa identificación');
         setIdOptions([]);
@@ -343,33 +343,33 @@ export default function PrintControlCard(): JSX.Element {
   }, [selectedDriverId, selectedVehicleId, error]);
 
   const handleSearchVehicle = async () => {
-  const q = plateQuery.trim().toUpperCase();
-  if (!q) {
-    console.log('Ingrese una placa para buscar');
-    return;
-  }
-  setPlateLoading(true);
-  try {
-    const res = await api.get<any[]>('/vehicles', { params: { plate: q } });
-    const data = Array.isArray(res.data) ? res.data : [];
-    if (data.length === 1) {
-      const vehicle = data[0];
-      setPlate(String(vehicle?.plate || '').toUpperCase());
-      setSelectedVehicleId(Number(vehicle?.id || 0));
-      success(`Vehículo encontrado: ${vehicle?.plate} - ${vehicle?.model}`);
-    } else if (data.length > 1) {
-      // Multiple vehicles found
-      success(`Se encontraron ${data.length} vehículos`);
-    } else {
-      error('No se encontró ningún vehículo con esa placa');
+    const q = plateQuery.trim().toUpperCase();
+    if (!q) {
+      console.log('Ingrese una placa para buscar');
+      return;
     }
-  } catch (e: any) {
-    const msg = e?.response?.data?.message || 'No se pudo obtener la información';
-    error(Array.isArray(msg) ? msg.join('\n') : String(msg));
-  } finally {
-    setPlateLoading(false);
-  }
-};
+    setPlateLoading(true);
+    try {
+      const res = await api.get<any[]>('/vehicles', { params: { plate: q } });
+      const data = Array.isArray(res.data) ? res.data : [];
+      if (data.length === 1) {
+        const vehicle = data[0];
+        setPlate(String(vehicle?.plate || '').toUpperCase());
+        setSelectedVehicleId(Number(vehicle?.id || 0));
+        success(`Vehículo encontrado: ${vehicle?.plate} - ${vehicle?.model}`);
+      } else if (data.length > 1) {
+        // Multiple vehicles found
+        success(`Se encontraron ${data.length} vehículos`);
+      } else {
+        error('No se encontró ningún vehículo con esa placa');
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'No se pudo obtener la información';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+    } finally {
+      setPlateLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -413,37 +413,37 @@ export default function PrintControlCard(): JSX.Element {
               </Box>
 
               <Box sx={{ flex: 1 }}>
-  <TextField
-    label="Placa"
-    size="small"
-    fullWidth
-    required
-    value={plateQuery}
-    onChange={(e) => {
-      const val = e.target.value.toUpperCase();
-      setPlateQuery(val);
-      setPlate(val);
-    }}
-    onKeyPress={(e) => {
-      if (e.key === 'Enter') {
-        handleSearchVehicle();
-      }
-    }}
-    InputProps={{
-      endAdornment: (
-        <InputAdornment position="end">
-          <IconButton
-            onClick={handleSearchVehicle}
-            disabled={!plateQuery.trim() || plateLoading}
-            size="small"
-          >
-            <SearchIcon />
-          </IconButton>
-        </InputAdornment>
-      ),
-    }}
-  />
-</Box>
+                <TextField
+                  label="Placa"
+                  size="small"
+                  fullWidth
+                  required
+                  value={plateQuery}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase();
+                    setPlateQuery(val);
+                    setPlate(val);
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearchVehicle();
+                    }
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleSearchVehicle}
+                          disabled={!plateQuery.trim() || plateLoading}
+                          size="small"
+                        >
+                          <SearchIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
             </Stack>
 
             {/* Botones de Limpiar/Imprimir removidos */}

@@ -112,8 +112,31 @@ export default function ControlCardEditModal({
       setSoatExpires(parseDate(controlCardData.soatExpires));
       setOperationCard(controlCardData.operationCard || '');
       setOperationCardExpires(parseDate(controlCardData.operationCardExpires));
-      setContractualExpires(parseDate(controlCardData.contractualExpires));
-      setExtraContractualExpires(parseDate(controlCardData.extraContractualExpires));
+      
+      // Load insurance dates from controlCardData or fallback to company storage
+      let contractual = parseDate(controlCardData.contractualExpires);
+      let extraContractual = parseDate(controlCardData.extraContractualExpires);
+      
+      // If not present in controlCardData, try to load from company storage
+      if (!contractual || !extraContractual) {
+        try {
+          const rawCompany = localStorage.getItem('company');
+          if (rawCompany) {
+            const company = JSON.parse(rawCompany);
+            if (!contractual && company.contractualExpires) {
+              contractual = parseDate(company.contractualExpires);
+            }
+            if (!extraContractual && company.extraContractualExpires) {
+              extraContractual = parseDate(company.extraContractualExpires);
+            }
+          }
+        } catch (e) {
+          console.error('Error loading company insurance dates', e);
+        }
+      }
+      
+      setContractualExpires(contractual);
+      setExtraContractualExpires(extraContractual);
       setTechnicalMechanicExpires(parseDate(controlCardData.technicalMechanicExpires));
     }
   }, [open, controlCardData]);

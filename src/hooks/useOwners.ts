@@ -136,7 +136,7 @@ export const useOwners = () => {
 
     setSubmitting(true);
     try {
-      const payload = { identification: unformatNumber(identification), name, phone, email, address };
+      const payload = { identification: parseInt(unformatNumber(identification), 10), name, phone, email, address };
       if (selectedOwnerId > 0) {
         await api.put(`/owner/${selectedOwnerId}`, payload);
         success('Propietario actualizado exitosamente');

@@ -262,6 +262,22 @@ export default function ControlCard(): JSX.Element {
           setCommunicationCompanies(catalogs.communicationCompanies || []);
           setOwners(catalogs.owners || []);
         }
+
+        // Load company insurance expiration dates from storage
+        try {
+          const rawCompany = localStorage.getItem('company');
+          if (rawCompany) {
+            const company = JSON.parse(rawCompany);
+            if (company.contractualExpires) {
+              setContractualExpires(dayjs(company.contractualExpires));
+            }
+            if (company.extraContractualExpires) {
+              setExtraContractualExpires(dayjs(company.extraContractualExpires));
+            }
+          }
+        } catch (e) {
+          console.error('Error loading company insurance dates', e);
+        }
       } catch (e: any) {
         console.error('Error loading initial data', e);
         const msg = e?.response?.data?.message || 'Error cargando datos';

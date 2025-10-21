@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Autocomplete, Box, Button, Card, CardContent, CircularProgress, FormControl, InputLabel, MenuItem, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { DatePicker } from '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
@@ -60,6 +61,7 @@ const OperationCardsQuery: React.FC = () => {
 
   // Estado común
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [items, setItems] = useState<DriverVehicleHistory[]>([]);
   const [searchTitle, setSearchTitle] = useState<string>('');
 
@@ -90,6 +92,7 @@ const OperationCardsQuery: React.FC = () => {
   // Estado para modo vencimiento
   const [expirationType, setExpirationType] = useState<string>('');
   const [expirationDate, setExpirationDate] = useState<Dayjs | null>(null);
+  const [endExpirationDate, setEndExpirationDate] = useState<Dayjs | null>(null);
 
   const resetDriverSearch = () => {
     setDriverIdQuery('');
@@ -102,6 +105,7 @@ const OperationCardsQuery: React.FC = () => {
   const resetExpirationSearch = () => {
     setExpirationType('');
     setExpirationDate(null);
+    setEndExpirationDate(null);
   };
 
   const handleDriverSelection = (driver: Driver | null) => {
@@ -224,9 +228,9 @@ const OperationCardsQuery: React.FC = () => {
     if (mode === 'date') return !!startDate && !!endDate;
     if (mode === 'vehicle') return !!selectedVehicleId && selectedVehicleId > 0;
     if (mode === 'driver') return !!selectedDriver && selectedDriver.id > 0;
-    if (mode === 'expiration') return !!expirationType && !!expirationDate;
+    if (mode === 'expiration') return !!expirationType && !!expirationDate && !!endExpirationDate;
     return false;
-  }, [mode, startDate, endDate, selectedVehicleId, selectedDriver, expirationType, expirationDate]);
+  }, [mode, startDate, endDate, selectedVehicleId, selectedDriver, expirationType, expirationDate, endExpirationDate]);
 
   const handleSubmit = async () => {
     try {
@@ -234,9 +238,8 @@ const OperationCardsQuery: React.FC = () => {
       let res: any;
       if (mode === 'date') {
         if (!startDate || !endDate) return;
-        // Convert dates to ISO format with proper time ranges
-        const fromDate = startDate.startOf('day').toISOString(); // Start of day (00:00:00.000Z)
-        const toDate = endDate.endOf('day').toISOString(); // End of day (23:59:59.999Z)
+        const fromDate = startDate.format('YYYY-MM-DD');
+        const toDate = endDate.format('YYYY-MM-DD');
         const params = {
           fromDate,
           toDate,
@@ -252,7 +255,7 @@ const OperationCardsQuery: React.FC = () => {
         setSearchTitle(`Resultados para el conductor: ${selectedDriver.firstName} ${selectedDriver.lastName}`);
         res = await api.get<DriverVehicleHistory[]>('/driver-vehicles-history', { params: { driverId: selectedDriver.id } });
       } else if (mode === 'expiration') {
-        if (!expirationType || !expirationDate) return;
+        if (!expirationType || !expirationDate || !endExpirationDate) return;
         const fieldNameMap: { [key: string]: string } = {
           'LICENCIA': 'expires_on',
           'TARJETA CONTROL': 'permit_expires_on',
@@ -264,10 +267,11 @@ const OperationCardsQuery: React.FC = () => {
         };
         const fieldName = fieldNameMap[expirationType];
         const params = {
-          expirationDate: expirationDate.format('YYYY-MM-DD'),
+          startDate: expirationDate.format('YYYY-MM-DD'),
+          endDate: endExpirationDate.format('YYYY-MM-DD'),
           fieldName
         };
-        setSearchTitle(`Resultados para vencimientos de ${expirationType} hasta: ${expirationDate.format('YYYY-MM-DD')}`);
+        setSearchTitle(`Resultados para vencimientos de ${expirationType} desde: ${expirationDate.format('YYYY-MM-DD')} hasta: ${endExpirationDate.format('YYYY-MM-DD')}`);
         res = await api.get<DriverVehicleHistory[]>('/driver-vehicles/expiring', { params });
       }
 
@@ -306,6 +310,72 @@ const OperationCardsQuery: React.FC = () => {
       case 'EXTRA CONTRACTUAL': return record.extraContractualExpires || 'N/A';
       case 'TECNICOMECANICA': return record.technicalMechanicExpires || 'N/A';
       default: return 'N/A';
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      let params: any;
+      let filename: string;
+
+      if (mode === 'date') {
+        if (!startDate || !endDate) return;
+        params = {
+          fromDate: startDate.format('YYYY-MM-DD'),
+          toDate: endDate.format('YYYY-MM-DD'),
+        };
+        filename = `historial_tarjetas_${params.fromDate}_${params.toDate}.xlsx`;
+      } else if (mode === 'vehicle') {
+        if (!selectedVehicleId) return;
+        params = { vehicleId: selectedVehicleId };
+        filename = `historial_tarjetas_vehiculo_${plate}.xlsx`;
+      } else if (mode === 'driver') {
+        if (!selectedDriver || !selectedDriver.id) return;
+        params = { driverId: selectedDriver.id };
+        filename = `historial_tarjetas_conductor_${selectedDriver.identification}.xlsx`;
+      } else if (mode === 'expiration') {
+        if (!expirationType || !expirationDate || !endExpirationDate) return;
+        const fieldNameMap: { [key: string]: string } = {
+          'LICENCIA': 'expires_on',
+          'TARJETA CONTROL': 'permit_expires_on',
+          'SOAT': 'soat_expires_on',
+          'TARJETA OPERACION': 'operation_card_expires_on',
+          'CONTRACTUAL': 'contractual_expires_on',
+          'EXTRA CONTRACTUAL': 'extra_contractual_expires_on',
+          'TECNICOMECANICA': 'technical_mechanic_expires_on'
+        };
+        const fieldName = fieldNameMap[expirationType];
+        params = {
+          startDate: expirationDate.format('YYYY-MM-DD'),
+          endDate: endExpirationDate.format('YYYY-MM-DD'),
+          fieldName
+        };
+        filename = `historial_vencimientos_${expirationType}_${params.startDate}_${params.endDate}.xlsx`;
+      } else {
+        return;
+      }
+
+      const response = await api.get('/driver-vehicles-history/export/excel', {
+        params,
+        responseType: 'blob',
+      });
+      
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      success('Archivo exportado correctamente');
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Error al exportar';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -521,11 +591,26 @@ const OperationCardsQuery: React.FC = () => {
                   </Box>
                   <Box sx={{ flex: 1 }}>
                     <DatePicker
-                      label="Fecha de vencimiento"
+                      label="Fecha inicial"
                       value={expirationDate}
                       onChange={(v) => setExpirationDate(v)}
                       format="YYYY-MM-DD"
                       minDate={dayjs()}
+                      slotProps={{ 
+                        textField: { 
+                          size: 'small', 
+                          fullWidth: true,
+                          required: true
+                        } 
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <DatePicker
+                      label="Fecha final"
+                      value={endExpirationDate}
+                      onChange={(v) => setEndExpirationDate(v)}
+                      format="YYYY-MM-DD"
                       slotProps={{ 
                         textField: { 
                           size: 'small', 
@@ -543,7 +628,16 @@ const OperationCardsQuery: React.FC = () => {
               <Button variant="contained" disabled={!canSubmit || submitting} onClick={handleSubmit}>
                 {submitting ? 'CONSULTANDO...' : 'CONSULTAR'}
               </Button>
-              <Button variant="outlined" onClick={handleClear} disabled={submitting}>
+              <Button
+                variant="contained"
+                color="success"
+                disabled={!canSubmit || exporting || submitting}
+                onClick={handleExport}
+                startIcon={<FileDownloadIcon />}
+              >
+                {exporting ? 'EXPORTANDO...' : 'EXPORTAR'}
+              </Button>
+              <Button variant="outlined" onClick={handleClear} disabled={submitting || exporting}>
                 LIMPIAR
               </Button>
             </Box>

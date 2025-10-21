@@ -25,15 +25,34 @@ function App(): JSX.Element {
   const isPrintOnly = location.pathname === '/absolute-print' || location.pathname === '/absolute-print-administration';
 
   useEffect(() => {
-    const raw = localStorage.getItem('user');
-    if (raw) {
-      try {
-        const user = JSON.parse(raw);
-        setCurrentUser(user);
-      } catch {
+    const loadUser = () => {
+      const raw = localStorage.getItem('user');
+      if (raw) {
+        try {
+          const user = JSON.parse(raw);
+          setCurrentUser(user);
+        } catch {
+          setCurrentUser(undefined);
+        }
+      } else {
         setCurrentUser(undefined);
       }
-    }
+    };
+
+    // Cargar usuario inicial
+    loadUser();
+
+    // Escuchar cambios en localStorage (para login/logout)
+    window.addEventListener('storage', loadUser);
+    
+    // Custom event para cambios en la misma pestaña
+    const handleAuthChange = () => loadUser();
+    window.addEventListener('authChange', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('storage', loadUser);
+      window.removeEventListener('authChange', handleAuthChange);
+    };
   }, []);
 
   // Close sidebar on ESC
@@ -47,6 +66,9 @@ function App(): JSX.Element {
 
   const logOut = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('company');
+    localStorage.removeItem('companyId');
+    window.dispatchEvent(new Event('authChange'));
     setCurrentUser(undefined);
   };
 
