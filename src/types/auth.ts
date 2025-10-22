@@ -1,15 +1,21 @@
 export interface Company {
-  id: number;
+  id: string;
   name: string;
-  [key: string]: any;
+  nit: string;
+  phone: string;
+  address: string;
+  contractual: string;
+  extraContractual: string;
+  contractualExpires: string;
+  extraContractualExpires: string;
 }
 
 export interface User {
-  id: number;
+  id: string;
+  name: string;
   user: string;
-  email: string;
+  permissions: 'ADMIN' | 'OPERATOR' | 'VIEWER';
   company: Company;
-  [key: string]: any;
 }
 
 export interface AuthData {

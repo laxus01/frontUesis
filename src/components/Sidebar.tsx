@@ -7,12 +7,14 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import PlagiarismOutlinedIcon from '@mui/icons-material/PlagiarismOutlined';
+import { useAuth } from '../hooks/useAuth';
 
 type SidebarProps = {
   onItemClick?: () => void;
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
+  const { canManageData, isAdmin } = useAuth();
   const linkBase =
     'flex items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-100';
   const linkActive = 'bg-blue-50 text-blue-700 font-medium';
@@ -36,75 +38,91 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <span>Inicio</span>
           </NavLink>
         </li>
-        <li>
-          <NavLink
-            to="/owners"
-            onClick={onItemClick}
-            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-          >
-            <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
-            <span>Propietarios</span>
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-            to="/vehicles"
-            onClick={onItemClick}
-            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-          >
-            <DirectionsCarIcon color="inherit" sx={{ fontSize: 18 }} />
-            <span>Vehículos</span>
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-            to="/drivers"
-            onClick={onItemClick}
-            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-          >
-            <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
-            <span>Conductores</span>
-          </NavLink>
-        </li>
-        <li>
-          <button
-            type="button"
-            onClick={() => setControlOpen(v => !v)}
-            className={`${linkBase} w-full justify-between`}
-            aria-expanded={controlOpen}
-            aria-controls="submenu-control-card"
-          >
-            <span className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">credit_card</span>
-              <span>Tarjeta de control</span>
-            </span>
-            {controlOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </button>
-          {controlOpen && (
-            <ul id="submenu-control-card" className="mt-1 ml-6 space-y-1">
-              <li>
-                <NavLink
-                  to="/control-sheet"
-                  onClick={onItemClick}
-                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-                >
-                  <span className="material-symbols-outlined text-base">add</span>
-                  <span>Registrar Tarjeta Control</span>
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/print-control-card"
-                  onClick={onItemClick}
-                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-                >
-                  <span className="material-symbols-outlined text-base">print</span>
-                  <span>Imprimir Tarjeta Control</span>
-                </NavLink>
-              </li>
-            </ul>
-          )}
-        </li>
+        {/* Propietarios - Solo ADMIN y OPERATOR */}
+        {canManageData() && (
+          <li>
+            <NavLink
+              to="/owners"
+              onClick={onItemClick}
+              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+            >
+              <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
+              <span>Propietarios</span>
+            </NavLink>
+          </li>
+        )}
+        
+        {/* Vehículos - Solo ADMIN y OPERATOR */}
+        {canManageData() && (
+          <li>
+            <NavLink
+              to="/vehicles"
+              onClick={onItemClick}
+              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+            >
+              <DirectionsCarIcon color="inherit" sx={{ fontSize: 18 }} />
+              <span>Vehículos</span>
+            </NavLink>
+          </li>
+        )}
+        
+        {/* Conductores - Solo ADMIN y OPERATOR */}
+        {canManageData() && (
+          <li>
+            <NavLink
+              to="/drivers"
+              onClick={onItemClick}
+              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+            >
+              <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
+              <span>Conductores</span>
+            </NavLink>
+          </li>
+        )}
+        
+        {/* Tarjeta de control - Solo ADMIN y OPERATOR */}
+        {canManageData() && (
+          <li>
+            <button
+              type="button"
+              onClick={() => setControlOpen(v => !v)}
+              className={`${linkBase} w-full justify-between`}
+              aria-expanded={controlOpen}
+              aria-controls="submenu-control-card"
+            >
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">credit_card</span>
+                <span>Tarjeta de control</span>
+              </span>
+              {controlOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </button>
+            {controlOpen && (
+              <ul id="submenu-control-card" className="mt-1 ml-6 space-y-1">
+                <li>
+                  <NavLink
+                    to="/control-sheet"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">add</span>
+                    <span>Registrar Tarjeta Control</span>
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/print-control-card"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">print</span>
+                    <span>Imprimir Tarjeta Control</span>
+                  </NavLink>
+                </li>
+              </ul>
+            )}
+          </li>
+        )}
+        {/* Administración */}
         <li>
           <button
             type="button"
@@ -121,16 +139,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           </button>
           {adminOpen && (
             <ul id="submenu-admin" className="mt-1 ml-6 space-y-1">
-              <li>
-                <NavLink
-                  to="/administration"
-                  onClick={onItemClick}
-                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-                >
-                  <span className="material-symbols-outlined text-base">add_card</span>
-                  <span>Generar pago</span>
-                </NavLink>
-              </li>
+              {/* Generar pago - Solo ADMIN */}
+              {isAdmin() && (
+                <li>
+                  <NavLink
+                    to="/administration"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">add_card</span>
+                    <span>Generar pago</span>
+                  </NavLink>
+                </li>
+              )}
+              {/* Consultar pagos - Todos los usuarios */}
               <li>
                 <NavLink
                   to="/reports/administration-payments"
@@ -143,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               </li>
             </ul>
           )}
-        </li>     
+        </li>        
         <li>
           <button
             type="button"
@@ -201,7 +223,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               </li>
             </ul>
           )}
-        </li>   
+        </li>        
+        {/* Usuarios - Solo ADMIN */}
+        {isAdmin() && (
+          <li>
+            <NavLink
+              to="/users"
+              onClick={onItemClick}
+              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+            >
+              <span className="material-symbols-outlined text-base">group</span>
+              <span>Usuarios</span>
+            </NavLink>
+          </li>
+        )}
       </ul>
     </nav>
   );

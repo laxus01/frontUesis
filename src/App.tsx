@@ -17,6 +17,8 @@ import AdministrationPayments from './pages/AdministrationPayments';
 import IncomeCertificate from './pages/IncomeCertificate';
 import Owners from './pages/Owners';
 import OperationCardsQuery from './pages/OperationCardsQuery';
+import Users from './pages/Users';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App(): JSX.Element {
   const [currentUser, setCurrentUser] = useState<AuthData | undefined>(undefined);
@@ -147,18 +149,71 @@ function App(): JSX.Element {
             {/* Content area */}
             <section className="flex-1 overflow-auto p-3 sm:p-4">
               <Routes>
+                {/* Rutas públicas */}
                 <Route path="/" element={<Home />} />
-                <Route path="/vehicles" element={<Vehicles />} />
-                <Route path="/drivers" element={<Drivers />} />
-                <Route path="/control-sheet" element={<ControlCard />} />
-                <Route path="/print-control-card" element={<PrintControlCard />} />
+                
+                {/* Rutas protegidas - ADMIN y OPERATOR */}
+                <Route path="/vehicles" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                    <Vehicles />
+                  </ProtectedRoute>
+                } />
+                <Route path="/drivers" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                    <Drivers />
+                  </ProtectedRoute>
+                } />
+                <Route path="/owners" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                    <Owners />
+                  </ProtectedRoute>
+                } />
+                <Route path="/control-sheet" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                    <ControlCard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/print-control-card" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                    <PrintControlCard />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Rutas protegidas - Solo ADMIN */}
+                <Route path="/administration" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN']}>
+                    <Administration />
+                  </ProtectedRoute>
+                } />
+                <Route path="/users" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN']}>
+                    <Users />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Rutas de reportes - Todos los usuarios autenticados */}
+                <Route path="/reports/administration-payments" element={
+                  <ProtectedRoute>
+                    <AdministrationPayments />
+                  </ProtectedRoute>
+                } />
+                <Route path="/reports/operation-cards" element={
+                  <ProtectedRoute>
+                    <OperationCardsQuery />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Rutas de documentos - Todos los usuarios autenticados */}
+                <Route path="/documents" element={
+                  <ProtectedRoute>
+                    <IncomeCertificate />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Rutas de impresión sin protección */}
                 <Route path="/absolute-print" element={<AbsolutePrintCard />} />
                 <Route path="/absolute-print-administration" element={<AbsoluteAdministrationPaymentPrint />} />
-                <Route path="/administration" element={<Administration />} />
-                <Route path="/reports/administration-payments" element={<AdministrationPayments />} />
-                <Route path="/documents" element={<IncomeCertificate />} />
-                <Route path="/owners" element={<Owners />} />
-                <Route path="/reports/operation-cards" element={<OperationCardsQuery />} />
+                
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </section>
