@@ -32,7 +32,8 @@ export const useUsers = () => {
       setLoading(true);
       setError(null);
       const response = await http.post<SystemUser>('/users', payload);
-      await fetchUsers(); // Recargar lista
+      // Agregar el nuevo usuario al estado inmediatamente
+      setUsers(prevUsers => [...prevUsers, response.data]);
       return { success: true, data: response.data };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Error al crear usuario';
@@ -45,14 +46,15 @@ export const useUsers = () => {
   };
 
   /**
-   * Actualizar un usuario existente
+   * Actualizar un usuario existente (incluye cambio de contraseña si se proporciona)
    */
   const updateUser = async (id: number, payload: UpdateUserPayload): Promise<{ success: boolean; data?: SystemUser; error?: string }> => {
     try {
       setLoading(true);
       setError(null);
       const response = await http.put<SystemUser>(`/users/${id}`, payload);
-      await fetchUsers(); // Recargar lista
+      // Actualizar el usuario en el estado inmediatamente
+      setUsers(prevUsers => prevUsers.map(user => user.id === id ? response.data : user));
       return { success: true, data: response.data };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Error al actualizar usuario';
@@ -72,31 +74,13 @@ export const useUsers = () => {
       setLoading(true);
       setError(null);
       await http.delete(`/users/${id}`);
-      await fetchUsers(); // Recargar lista
+      // Eliminar el usuario del estado inmediatamente
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Error al eliminar usuario';
       setError(errorMsg);
       console.error('Error deleting user:', err);
-      return { success: false, error: errorMsg };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Cambiar contraseña de un usuario
-   */
-  const changePassword = async (id: number, newPassword: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true);
-      setError(null);
-      await http.patch(`/users/${id}/password`, { password: newPassword });
-      return { success: true };
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Error al cambiar contraseña';
-      setError(errorMsg);
-      console.error('Error changing password:', err);
       return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
@@ -114,7 +98,6 @@ export const useUsers = () => {
     fetchUsers,
     createUser,
     updateUser,
-    deleteUser,
-    changePassword
+    deleteUser
   };
 };

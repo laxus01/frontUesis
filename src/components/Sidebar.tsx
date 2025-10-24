@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           >
             <span className="flex items-center gap-2">
               <PlagiarismOutlinedIcon color="inherit" sx={{ fontSize: 18 }} />
-              <span>Consultas</span>
+              <span>Consultar Documentos</span>
             </span>
             {reportsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
           </button>

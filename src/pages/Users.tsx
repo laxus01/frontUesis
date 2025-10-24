@@ -21,7 +21,6 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Key as KeyIcon,
   Visibility,
   VisibilityOff
 } from '@mui/icons-material';
@@ -32,17 +31,15 @@ import { useSnackbar } from '../components/SnackbarProvider';
 import DataTable, { TableColumn, TableAction } from '../components/common/DataTable';
 
 const Users: React.FC = () => {
-  const { users, loading, createUser, updateUser, deleteUser, changePassword } = useUsers();
+  const { users, loading, createUser, updateUser, deleteUser } = useUsers();
   const { currentUser } = useAuth();
   const { success: showSuccess, error: showError } = useSnackbar();
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const [formData, setFormData] = useState<CreateUserPayload>({
     user: '',
@@ -52,7 +49,6 @@ const Users: React.FC = () => {
     companyId: currentUser?.company?.id ? parseInt(currentUser.company.id) : 1
   });
 
-  const [newPassword, setNewPassword] = useState('');
 
   // Columnas de la tabla
   const columns: TableColumn<SystemUser>[] = [
@@ -129,12 +125,6 @@ const Users: React.FC = () => {
     setOpenDialog(true);
   }
 
-  function handleChangePassword(user: SystemUser) {
-    setSelectedUser(user);
-    setNewPassword('');
-    setOpenPasswordDialog(true);
-  }
-
   function handleDeleteClick(user: SystemUser) {
     setSelectedUser(user);
     setOpenDeleteDialog(true);
@@ -174,12 +164,13 @@ const Users: React.FC = () => {
     }
 
     if (editingUser) {
-      // Actualizar - Construir payload según el formato del API (sin password)
+      // Actualizar - Incluir password solo si se proporcionó
       const payload: UpdateUserPayload = {
         name: formData.name,
         user: formData.user,
         companyId: formData.companyId,
-        permissions: formData.permissions
+        permissions: formData.permissions,
+        ...(formData.password.trim() && { password: formData.password })
       };
 
       const result = await updateUser(editingUser.id!, payload);
@@ -201,24 +192,6 @@ const Users: React.FC = () => {
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (!newPassword.trim()) {
-      showError('La contraseña es requerida');
-      return;
-    }
-
-    if (selectedUser) {
-      const result = await changePassword(selectedUser.id!, newPassword);
-      if (result.success) {
-        showSuccess('Contraseña actualizada exitosamente');
-        setOpenPasswordDialog(false);
-        setSelectedUser(null);
-        setNewPassword('');
-      } else {
-        showError(result.error || 'Error al cambiar contraseña');
-      }
-    }
-  };
 
   const handleDelete = async () => {
     if (selectedUser) {
@@ -285,29 +258,27 @@ const Users: React.FC = () => {
               required
             />
 
-            {/* Mostrar contraseña solo al crear, no al editar */}
-            {!editingUser && (
-              <TextField
-                label="Contraseña"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                fullWidth
-                required
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-            )}
+            <TextField
+              label={editingUser ? "Nueva Contraseña (opcional)" : "Contraseña"}
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              fullWidth
+              required={!editingUser}
+              helperText={editingUser ? "Dejar en blanco para mantener la contraseña actual" : ""}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
 
             <TextField
               select
@@ -327,44 +298,6 @@ const Users: React.FC = () => {
           <Button onClick={handleCloseDialog}>Cancelar</Button>
           <Button onClick={handleSubmit} variant="contained">
             {editingUser ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog Cambiar Contraseña */}
-      <Dialog open={openPasswordDialog} onClose={() => setOpenPasswordDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Cambiar Contraseña</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Usuario: <strong>{selectedUser?.user}</strong>
-            </Typography>
-            <TextField
-              label="Nueva Contraseña"
-              type={showNewPassword ? 'text' : 'password'}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              fullWidth
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      edge="end"
-                    >
-                      {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenPasswordDialog(false)}>Cancelar</Button>
-          <Button onClick={handlePasswordChange} variant="contained" color="warning">
-            Cambiar Contraseña
           </Button>
         </DialogActions>
       </Dialog>

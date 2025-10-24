@@ -36,7 +36,7 @@ export interface UpdateUserPayload {
   name: string;
   user: string;
   password?: string;
-  permissions?: UserPermission;
+  permissions: UserPermission;
   companyId: number;
 }
 
