@@ -21,7 +21,7 @@ export interface User {
   id: string;
   name: string;
   user: string;
-  permissions: 'ADMIN' | 'OPERATOR' | 'VIEWER';
+  permissions: 'SUPER' | 'ADMIN' | 'OPERATOR' | 'VIEWER';
   company: Company;
   policy: Policy;
 }

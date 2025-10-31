@@ -32,6 +32,9 @@ import DataTable, { TableColumn, TableAction } from '../components/common/DataTa
 
 const Users: React.FC = () => {
   const { users, loading, createUser, updateUser, deleteUser } = useUsers();
+  
+  // Filtrar usuarios SUPER para que no se muestren en la tabla
+  const filteredUsers = users.filter(user => user.permissions !== 'SUPER');
   const { currentUser } = useAuth();
   const { success: showSuccess, error: showError } = useSnackbar();
 
@@ -75,7 +78,8 @@ const Users: React.FC = () => {
       label: 'Permisos',
       sortable: true,
       render: (_value, row) => {
-        const colors: Record<UserPermission, 'error' | 'warning' | 'info'> = {
+        const colors: Record<UserPermission, 'error' | 'warning' | 'info' | 'secondary'> = {
+          SUPER: 'secondary',
           ADMIN: 'error',
           OPERATOR: 'warning',
           VIEWER: 'info'
@@ -228,7 +232,7 @@ const Users: React.FC = () => {
       ) : (
         <DataTable
           columns={columns}
-          data={users}
+          data={filteredUsers}
           actions={actions}
           searchable
           searchPlaceholder="Buscar usuarios..."
@@ -288,6 +292,7 @@ const Users: React.FC = () => {
               fullWidth
               required
             >
+              <MenuItem value="SUPER">Super Administrador</MenuItem>
               <MenuItem value="ADMIN">Administrador</MenuItem>
               <MenuItem value="OPERATOR">Operador</MenuItem>
               <MenuItem value="VIEWER">Visualizador</MenuItem>

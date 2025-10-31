@@ -154,46 +154,46 @@ function App(): JSX.Element {
                 {/* Rutas públicas */}
                 <Route path="/" element={<Home />} />
                 
-                {/* Rutas protegidas - ADMIN y OPERATOR pueden gestionar, VIEWER solo ver */}
+                {/* Rutas protegidas - SUPER, ADMIN y OPERATOR pueden gestionar, VIEWER solo ver */}
                 <Route path="/vehicles" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR', 'VIEWER']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
                     <Vehicles />
                   </ProtectedRoute>
                 } />
                 <Route path="/drivers" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR', 'VIEWER']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
                     <Drivers />
                   </ProtectedRoute>
                 } />
                 <Route path="/owners" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR', 'VIEWER']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
                     <Owners />
                   </ProtectedRoute>
                 } />
                 <Route path="/policies" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
                     <Policies />
                   </ProtectedRoute>
                 } />
                 <Route path="/control-sheet" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
                     <ControlCard />
                   </ProtectedRoute>
                 } />
                 <Route path="/print-control-card" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
                     <PrintControlCard />
                   </ProtectedRoute>
                 } />
                 
-                {/* Rutas protegidas - Solo ADMIN */}
+                {/* Rutas protegidas - Solo SUPER y ADMIN */}
                 <Route path="/administration" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
                     <Administration />
                   </ProtectedRoute>
                 } />
                 <Route path="/users" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
                     <Users />
                   </ProtectedRoute>
                 } />
@@ -210,14 +210,14 @@ function App(): JSX.Element {
                   </ProtectedRoute>
                 } />
                 
-                {/* Rutas de documentos - Solo ADMIN y OPERATOR */}
+                {/* Rutas de documentos - Solo SUPER, ADMIN y OPERATOR */}
                 <Route path="/documents" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
                     <IncomeCertificates />
                   </ProtectedRoute>
                 } />
                 <Route path="/documents/work-certificate" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
                     <WorkCertificate />
                   </ProtectedRoute>
                 } />

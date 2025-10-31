@@ -1,4 +1,4 @@
-export type UserPermission = 'ADMIN' | 'OPERATOR' | 'VIEWER';
+export type UserPermission = 'SUPER' | 'ADMIN' | 'OPERATOR' | 'VIEWER';
 
 export interface UserCompany {
   id: number;
@@ -41,6 +41,7 @@ export interface UpdateUserPayload {
 }
 
 export const PERMISSION_LABELS: Record<UserPermission, string> = {
+  SUPER: 'Super Administrador',
   ADMIN: 'Administrador',
   OPERATOR: 'Operador',
   VIEWER: 'Visualizador'

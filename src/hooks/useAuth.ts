@@ -49,17 +49,17 @@ export const useAuth = () => {
   };
 
   /**
-   * Verifica si el usuario es ADMIN
+   * Verifica si el usuario es ADMIN o SUPER
    */
   const isAdmin = (): boolean => {
-    return currentUser?.permissions === 'ADMIN';
+    return currentUser?.permissions === 'ADMIN' || currentUser?.permissions === 'SUPER';
   };
 
   /**
-   * Verifica si el usuario es ADMIN u OPERATOR
+   * Verifica si el usuario es SUPER, ADMIN u OPERATOR
    */
   const canManageData = (): boolean => {
-    return hasPermission(['ADMIN', 'OPERATOR']);
+    return hasPermission(['SUPER', 'ADMIN', 'OPERATOR']);
   };
 
   return {
