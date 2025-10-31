@@ -9,6 +9,7 @@ import api from '../services/http';
 import { useNotify } from '../services/notify';
 import { useDrivers } from '../hooks/useDrivers';
 import { formatNumber } from '../utils/formatting';
+import { useAuth } from '../hooks/useAuth';
 
 interface Driver {
   id: number;
@@ -57,6 +58,7 @@ interface DriverVehicleHistory {
 
 const OperationCardsQuery: React.FC = () => {
   const { success, error } = useNotify();
+  const { canManageData } = useAuth();
   const [mode, setMode] = useState<'date' | 'vehicle' | 'driver' | 'expiration'>('date');
 
   // Estado común
@@ -263,7 +265,8 @@ const OperationCardsQuery: React.FC = () => {
           'TARJETA OPERACION': 'operation_card_expires_on',
           'CONTRACTUAL': 'contractual_expires_on',
           'EXTRA CONTRACTUAL': 'extra_contractual_expires_on',
-          'TECNICOMECANICA': 'technical_mechanic_expires_on'
+          'TECNICOMECANICA': 'technical_mechanic_expires_on',
+          'TODOS': 'all_documents'
         };
         const fieldName = fieldNameMap[expirationType];
         const params = {
@@ -586,6 +589,7 @@ const OperationCardsQuery: React.FC = () => {
                         <MenuItem value="CONTRACTUAL">CONTRACTUAL</MenuItem>
                         <MenuItem value="EXTRA CONTRACTUAL">EXTRA CONTRACTUAL</MenuItem>
                         <MenuItem value="TECNICOMECANICA">TECNICOMECANICA</MenuItem>
+                        <MenuItem value="TODOS">TODOS</MenuItem>
                       </Select>
                     </FormControl>
                   </Box>
@@ -628,15 +632,17 @@ const OperationCardsQuery: React.FC = () => {
               <Button variant="contained" disabled={!canSubmit || submitting} onClick={handleSubmit}>
                 {submitting ? 'CONSULTANDO...' : 'CONSULTAR'}
               </Button>
-              <Button
-                variant="contained"
-                color="success"
-                disabled={!canSubmit || exporting || submitting}
-                onClick={handleExport}
-                startIcon={<FileDownloadIcon />}
-              >
-                {exporting ? 'EXPORTANDO...' : 'EXPORTAR'}
-              </Button>
+              {canManageData() && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  disabled={!canSubmit || exporting || submitting}
+                  onClick={handleExport}
+                  startIcon={<FileDownloadIcon />}
+                >
+                  {exporting ? 'EXPORTANDO...' : 'EXPORTAR'}
+                </Button>
+              )}
               <Button variant="outlined" onClick={handleClear} disabled={submitting || exporting}>
                 LIMPIAR
               </Button>

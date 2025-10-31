@@ -22,9 +22,11 @@ import {
 import DataTable, { TableColumn, TableAction } from '../components/common/DataTable';
 import VehicleFormModal from '../components/modals/VehicleFormModal';
 import { useVehiclesList, Vehicle } from '../hooks/useVehiclesList';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Vehicles(): JSX.Element {
   const { vehicles, loading, deleteVehicle, fetchVehicles, toggleVehicleState } = useVehiclesList();
+  const { canManageData } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -76,12 +78,6 @@ export default function Vehicles(): JSX.Element {
       render: (value, vehicle) => vehicle.owner?.name || '-'
     },
     {
-      id: 'insurer',
-      label: 'Aseguradora',
-      sortable: true,
-      render: (value, vehicle) => vehicle.insurer?.name || '-'
-    },
-    {
       id: 'communicationCompany',
       label: 'Comunicación',
       sortable: true,
@@ -108,7 +104,8 @@ export default function Vehicles(): JSX.Element {
     }
   ];
 
-  const actions: TableAction<Vehicle>[] = [
+  // Solo mostrar acciones si el usuario puede gestionar datos (ADMIN o OPERATOR)
+  const actions: TableAction<Vehicle>[] = canManageData() ? [
     {
       label: 'Editar',
       icon: <EditIcon />,
@@ -135,7 +132,7 @@ export default function Vehicles(): JSX.Element {
       },
       color: 'error'
     }
-  ];
+  ] : [];
 
   const handleModalClose = () => {
     setModalOpen(false);
@@ -190,14 +187,16 @@ export default function Vehicles(): JSX.Element {
           <Box sx={{ height: 3, width: 170, bgcolor: 'primary.main', borderRadius: 1 }} />
         </Box>
         
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setModalOpen(true)}
-          sx={{ borderRadius: 2 }}
-        >
-          Nuevo Vehículo
-        </Button>
+        {canManageData() && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setModalOpen(true)}
+            sx={{ borderRadius: 2 }}
+          >
+            Nuevo Vehículo
+          </Button>
+        )}
       </Box>
 
       {/* DataTable */}
@@ -211,26 +210,28 @@ export default function Vehicles(): JSX.Element {
         paginated
         pageSize={5}
         emptyMessage="No hay vehículos registrados"
-        exportConfig={{
+        exportConfig={canManageData() ? {
           endpoint: '/vehicles/export/excel',
           filename: 'listado-vehiculos.xlsx'
-        }}
+        } : undefined}
       />
 
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="agregar vehículo"
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          display: { xs: 'flex', sm: 'none' }
-        }}
-        onClick={() => setModalOpen(true)}
-      >
-        <AddIcon />
-      </Fab>
+      {/* Floating Action Button - Solo para ADMIN y OPERATOR */}
+      {canManageData() && (
+        <Fab
+          color="primary"
+          aria-label="agregar vehículo"
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            display: { xs: 'flex', sm: 'none' }
+          }}
+          onClick={() => setModalOpen(true)}
+        >
+          <AddIcon />
+        </Fab>
+      )}
 
       {/* Add/Edit Modal */}
       <VehicleFormModal

@@ -17,7 +17,7 @@ import {
   Button,
   InputAdornment,
 } from '@mui/material';
-import { Print as PrintIcon, Edit as EditIcon, Warning as WarningIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Print as PrintIcon, Edit as EditIcon, Warning as WarningIcon, Search as SearchIcon, Info as InfoIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
@@ -79,6 +79,27 @@ interface ExpiredDocument {
   daysExpired: number;
 }
 
+interface VehicleStateHistory {
+  id: number;
+  vehicleId: number;
+  previousState: number;
+  newState: number;
+  reason: string;
+  createdAt: string;
+  vehicle: {
+    id: number;
+    plate: string;
+  };
+}
+
+interface VehicleStateHistoryResponse {
+  vehicleId: number;
+  vehiclePlate: string;
+  currentState: number;
+  totalChanges: number;
+  history: VehicleStateHistory[];
+}
+
 export default function PrintControlCard(): JSX.Element {
   const { error, success } = useNotify();
   const [selectedDriverId, setSelectedDriverId] = useState<number>(0);
@@ -95,9 +116,34 @@ export default function PrintControlCard(): JSX.Element {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedControlCard, setSelectedControlCard] = useState<DriverVehicleRes | null>(null);
 
+  // Vehicle state history modal
+  const [stateHistoryOpen, setStateHistoryOpen] = useState(false);
+  const [stateHistoryData, setStateHistoryData] = useState<VehicleStateHistoryResponse | null>(null);
+  const [loadingStateHistory, setLoadingStateHistory] = useState(false);
+
   const handleEditModalClose = () => {
     setEditModalOpen(false);
     setSelectedControlCard(null);
+  };
+
+  const handleShowStateHistory = async (vehicleId: number) => {
+    setLoadingStateHistory(true);
+    setStateHistoryOpen(true);
+    try {
+      const res = await api.get<VehicleStateHistoryResponse>(`/vehicles/${vehicleId}/state-history`);
+      setStateHistoryData(res.data);
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Error al obtener el historial de estado';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+      setStateHistoryOpen(false);
+    } finally {
+      setLoadingStateHistory(false);
+    }
+  };
+
+  const handleCloseStateHistory = () => {
+    setStateHistoryOpen(false);
+    setStateHistoryData(null);
   };
 
   const handlePrintClick = (item: DriverVehicleRes) => {
@@ -188,8 +234,22 @@ export default function PrintControlCard(): JSX.Element {
         setIdOptions([]);
       } else if (data.length === 1) {
         // Auto-select if only one result
-        handlePersonSelection(data[0]);
+        const driver = data[0];
+        handlePersonSelection(driver);
         setIdOptions(data);
+        
+        // Fetch driver-vehicles data
+        setLoadingResults(true);
+        try {
+          const dvRes = await api.get<DriverVehicleRes[]>(`/driver-vehicles/by-driver/${driver.id}`);
+          const dvData = Array.isArray(dvRes.data) ? dvRes.data : [];
+          setResults(dvData);
+        } catch (e: any) {
+          const msg = e?.response?.data?.message || 'No se pudo obtener la información';
+          error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+        } finally {
+          setLoadingResults(false);
+        }
       } else {
         // Multiple results
         setIdOptions(data);
@@ -258,6 +318,24 @@ export default function PrintControlCard(): JSX.Element {
         }
       }
     };
+
+    // Check vehicle state - if state is 0, vehicle is inactive
+    if (item.vehicle && item.vehicle.state === 0) {
+      expired.push({
+        name: 'Vehículo',
+        date: 'Inactivo',
+        daysExpired: 0
+      });
+    }
+
+    // Check vehicle policy status - if state is 0, policy is inactive
+    if (item.vehicle?.police && item.vehicle.police.state === 0) {
+      expired.push({
+        name: 'Póliza del vehículo',
+        date: 'Inactiva',
+        daysExpired: 0
+      });
+    }
 
     // Check driver license expiration
     if (item.driver?.expiresOn) {
@@ -511,9 +589,21 @@ export default function PrintControlCard(): JSX.Element {
                       >
                         <Typography variant="body2" fontWeight={600}>Documentos vencidos:</Typography>
                         {expiredDocs.map((doc, index) => (
-                          <Typography key={index} variant="body2" sx={{ fontSize: '0.75rem' }}>
-                            - {doc.name}: {doc.date} ({doc.daysExpired} días vencido{doc.daysExpired !== 1 ? 's' : ''})
-                          </Typography>
+                          <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                              - {doc.name}: {doc.date}{doc.daysExpired > 0 ? ` (${doc.daysExpired} días vencido${doc.daysExpired !== 1 ? 's' : ''})` : ''}
+                            </Typography>
+                            {doc.name === 'Vehículo' && doc.date === 'Inactivo' && v.id && (
+                              <IconButton
+                                size="small"
+                                onClick={() => handleShowStateHistory(v.id)}
+                                sx={{ padding: 0, ml: 0.5 }}
+                                title="Ver historial de estado"
+                              >
+                                <InfoIcon fontSize="small" color="info" />
+                              </IconButton>
+                            )}
+                          </Box>
                         ))}
                       </Alert>
                     )}
@@ -586,6 +676,89 @@ export default function PrintControlCard(): JSX.Element {
           </Button>
           <Button onClick={handlePrintConfirm} variant="contained" color="primary">
             Imprimir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Vehicle State History Modal */}
+      <Dialog
+        open={stateHistoryOpen}
+        onClose={handleCloseStateHistory}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Historial de Estado del Vehículo
+        </DialogTitle>
+        <DialogContent>
+          {loadingStateHistory ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : stateHistoryData ? (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Box>
+                <Typography variant="body2">
+                  <strong>Vehículo:</strong> {stateHistoryData.vehiclePlate}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Estado actual:</strong>{' '}
+                  <Chip
+                    label={stateHistoryData.currentState === 1 ? 'Activo' : 'Inactivo'}
+                    color={stateHistoryData.currentState === 1 ? 'success' : 'error'}
+                    size="small"
+                  />
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total de cambios:</strong> {stateHistoryData.totalChanges}
+                </Typography>
+              </Box>
+
+              <Typography variant="subtitle2" fontWeight={600}>
+                Historial de cambios:
+              </Typography>
+
+              {stateHistoryData.history.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No hay historial de cambios disponible.
+                </Typography>
+              ) : (
+                <Stack spacing={2}>
+                  {stateHistoryData.history.map((record) => (
+                    <Card key={record.id} variant="outlined">
+                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                        <Stack spacing={0.5}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip
+                              label={record.previousState === 1 ? 'Activo' : 'Inactivo'}
+                              color={record.previousState === 1 ? 'success' : 'error'}
+                              size="small"
+                            />
+                            <Typography variant="body2">→</Typography>
+                            <Chip
+                              label={record.newState === 1 ? 'Activo' : 'Inactivo'}
+                              color={record.newState === 1 ? 'success' : 'error'}
+                              size="small"
+                            />
+                          </Box>
+                          <Typography variant="body2">
+                            <strong>Razón:</strong> {record.reason}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {dayjs(record.createdAt).format('DD/MM/YYYY HH:mm')}
+                          </Typography>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseStateHistory} color="primary">
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>

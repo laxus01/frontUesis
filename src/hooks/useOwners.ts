@@ -26,6 +26,7 @@ export const useOwners = () => {
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [address, setAddress] = useState<string>('');
+  const [issuedIn, setIssuedIn] = useState<string>('');
 
   const [idQuery, setIdQuery] = useState<string>('');
   const [idOptions, setIdOptions] = useState<OwnerLite[]>([]);
@@ -36,7 +37,7 @@ export const useOwners = () => {
   const [nameLoading, setNameLoading] = useState<boolean>(false);
 
   const disabledAll = useMemo(() => loading || submitting, [loading, submitting]);
-  const canSubmit = useMemo(() => !!identification && !!name && !!phone, [identification, name, phone]);
+  const canSubmit = useMemo(() => !!identification && !!name && !!issuedIn, [identification, name, issuedIn]);
 
   const populateForm = useCallback((owner: Owner) => {
     setSelectedOwnerId(owner.id);
@@ -45,6 +46,7 @@ export const useOwners = () => {
     setPhone(owner.phone || '');
     setEmail(owner.email || '');
     setAddress(owner.address || '');
+    setIssuedIn((owner as any).issuedIn || '');
 
     // Sync query fields
     setIdQuery(formatNumber(owner.identification));
@@ -58,6 +60,7 @@ export const useOwners = () => {
     setPhone('');
     setEmail('');
     setAddress('');
+    setIssuedIn('');
     setIdQuery('');
     setNameQuery('');
   }, []);
@@ -136,7 +139,24 @@ export const useOwners = () => {
 
     setSubmitting(true);
     try {
-      const payload = { identification: parseInt(unformatNumber(identification), 10), name, phone, email, address };
+      // Build payload with only non-empty fields
+      const payload: any = {
+        identification: parseInt(unformatNumber(identification), 10),
+        name,
+        issuedIn: issuedIn.trim()
+      };
+      
+      // Only add optional fields if they have a value
+      if (phone && phone.trim()) {
+        payload.phone = phone.trim();
+      }
+      if (email && email.trim()) {
+        payload.email = email.trim();
+      }
+      if (address && address.trim()) {
+        payload.address = address.trim();
+      }
+
       if (selectedOwnerId > 0) {
         await api.put(`/owner/${selectedOwnerId}`, payload);
         success('Propietario actualizado exitosamente');
@@ -161,7 +181,7 @@ export const useOwners = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, identification, name, phone, email, address, selectedOwnerId, resetForm, success, error]);
+  }, [canSubmit, identification, name, phone, email, address, issuedIn, selectedOwnerId, resetForm, success, error]);
 
   return {
     loading,
@@ -172,6 +192,7 @@ export const useOwners = () => {
     phone,
     email,
     address,
+    issuedIn,
     disabledAll,
     canSubmit,
     idQuery,
@@ -185,6 +206,7 @@ export const useOwners = () => {
     setPhone,
     setEmail,
     setAddress,
+    setIssuedIn,
     setIdQuery,
     setNameQuery,
     onSubmit,

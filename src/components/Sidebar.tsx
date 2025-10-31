@@ -38,47 +38,41 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <span>Inicio</span>
           </NavLink>
         </li>
-        {/* Propietarios - Solo ADMIN y OPERATOR */}
-        {canManageData() && (
-          <li>
-            <NavLink
-              to="/owners"
-              onClick={onItemClick}
-              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-            >
-              <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
-              <span>Propietarios</span>
-            </NavLink>
-          </li>
-        )}
+        {/* Propietarios - Todos los usuarios autenticados */}
+        <li>
+          <NavLink
+            to="/owners"
+            onClick={onItemClick}
+            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          >
+            <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
+            <span>Propietarios</span>
+          </NavLink>
+        </li>
         
-        {/* Vehículos - Solo ADMIN y OPERATOR */}
-        {canManageData() && (
-          <li>
-            <NavLink
-              to="/vehicles"
-              onClick={onItemClick}
-              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-            >
-              <DirectionsCarIcon color="inherit" sx={{ fontSize: 18 }} />
-              <span>Vehículos</span>
-            </NavLink>
-          </li>
-        )}
+        {/* Vehículos - Todos los usuarios autenticados */}
+        <li>
+          <NavLink
+            to="/vehicles"
+            onClick={onItemClick}
+            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          >
+            <DirectionsCarIcon color="inherit" sx={{ fontSize: 18 }} />
+            <span>Vehículos</span>
+          </NavLink>
+        </li>
         
-        {/* Conductores - Solo ADMIN y OPERATOR */}
-        {canManageData() && (
-          <li>
-            <NavLink
-              to="/drivers"
-              onClick={onItemClick}
-              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-            >
-              <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
-              <span>Conductores</span>
-            </NavLink>
-          </li>
-        )}
+        {/* Conductores - Todos los usuarios autenticados */}
+        <li>
+          <NavLink
+            to="/drivers"
+            onClick={onItemClick}
+            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          >
+            <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
+            <span>Conductores</span>
+          </NavLink>
+        </li>
         
         {/* Tarjeta de control - Solo ADMIN y OPERATOR */}
         {canManageData() && (
@@ -195,35 +189,64 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             </ul>
           )}
         </li>
-        <li>
-          <button
-            type="button"
-            onClick={() => setDocumentsOpen(v => !v)}
-            className={`${linkBase} w-full justify-between`}
-            aria-expanded={documentsOpen}
-            aria-controls="submenu-documents"
-          >
-            <span className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">folder</span>
-              <span>Documentos</span>
-            </span>
-            {documentsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </button>
-          {documentsOpen && (
-            <ul id="submenu-documents" className="mt-1 ml-6 space-y-1">
-              <li>
-                <NavLink
-                  to="/documents"
-                  onClick={onItemClick}
-                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-                >
-                  <span className="material-symbols-outlined text-base">list</span>
-                  <span>Certificación Ingresos</span>
-                </NavLink>
-              </li>
-            </ul>
-          )}
-        </li>        
+        
+        {/* Documentos - Solo ADMIN y OPERATOR */}
+        {canManageData() && (
+          <li>
+            <button
+              type="button"
+              onClick={() => setDocumentsOpen(v => !v)}
+              className={`${linkBase} w-full justify-between`}
+              aria-expanded={documentsOpen}
+              aria-controls="submenu-documents"
+            >
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">folder</span>
+                <span>Documentos</span>
+              </span>
+              {documentsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </button>
+            {documentsOpen && (
+              <ul id="submenu-documents" className="mt-1 ml-6 space-y-1">
+                <li>
+                  <NavLink
+                    to="/documents"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">description</span>
+                    <span>Certificación de Ingresos</span>
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/documents/work-certificate"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">badge</span>
+                    <span>Certificado Laboral</span>
+                  </NavLink>
+                </li>
+              </ul>
+            )}
+          </li>
+        )}
+        
+        {/* Polizas - Solo ADMIN */}
+        {isAdmin() && (
+          <li>
+            <NavLink
+              to="/policies"
+              onClick={onItemClick}
+              className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+            >
+              <span className="material-symbols-outlined text-base">security</span>
+              <span>Polizas</span>
+            </NavLink>
+          </li>
+        )}
+             
         {/* Usuarios - Solo ADMIN */}
         {isAdmin() && (
           <li>

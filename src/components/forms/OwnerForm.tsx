@@ -7,12 +7,14 @@ interface OwnerFormProps {
   phone: string;
   email: string;
   address: string;
+  issuedIn: string;
   disabledAll: boolean;
   setIdentification: (value: string) => void;
   setName: (value: string) => void;
   setPhone: (value: string) => void;
   setEmail: (value: string) => void;
   setAddress: (value: string) => void;
+  setIssuedIn: (value: string) => void;
 }
 
 export default function OwnerForm({
@@ -21,12 +23,14 @@ export default function OwnerForm({
   phone,
   email,
   address,
+  issuedIn,
   disabledAll,
   setIdentification,
   setName,
   setPhone,
   setEmail,
   setAddress,
+  setIssuedIn,
 }: OwnerFormProps): JSX.Element {
   return (
     <Stack spacing={2} sx={{ mt: 1 }}>
@@ -46,6 +50,21 @@ export default function OwnerForm({
             autoFocus
           />
         </Box>
+        <Box sx={{ flex: 1 }}>
+          <TextField
+            label="Lugar de Expedición"
+            size="small"
+            fullWidth
+            value={issuedIn}
+            onChange={e => setIssuedIn(e.target.value)}
+            required
+            disabled={disabledAll}
+            placeholder="Ej: Bogotá, Medellín, Cali"
+          />
+        </Box>
+      </Stack>
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <Box sx={{ flex: 1 }}>
           <TextField
             label="Nombre Completo"

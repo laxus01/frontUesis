@@ -577,7 +577,8 @@ export default function DriverFormModal({ open, onClose, onSuccess, editDriver }
               </Box>
               <Box sx={{ flex: 1 }}>
                 <TextField
-                  label="Expedida en"
+                  label="Lugar de Expedición"
+                  placeholder="Ej: Sincelejo Cartagene Bogotá"
                   size="small"
                   fullWidth
                   value={issuedIn}

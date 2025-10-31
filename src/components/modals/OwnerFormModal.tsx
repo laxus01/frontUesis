@@ -31,6 +31,7 @@ export default function OwnerFormModal({ open, onClose, onSuccess, editOwner }: 
     phone,
     email,
     address,
+    issuedIn,
     disabledAll,
     canSubmit,
     setIdentification,
@@ -38,6 +39,7 @@ export default function OwnerFormModal({ open, onClose, onSuccess, editOwner }: 
     setPhone,
     setEmail,
     setAddress,
+    setIssuedIn,
     onSubmit,
     resetForm,
     populateForm,
@@ -55,7 +57,8 @@ export default function OwnerFormModal({ open, onClose, onSuccess, editOwner }: 
         phone: editOwner.phone,
         email: editOwner.email,
         address: editOwner.address,
-      });
+        issuedIn: (editOwner as any).issuedIn || '',
+      } as any);
     } else if (!editOwner && open) {
       resetForm();
     }
@@ -122,6 +125,21 @@ export default function OwnerFormModal({ open, onClose, onSuccess, editOwner }: 
               </Box>
               <Box sx={{ flex: 1 }}>
                 <TextField
+                  label="Lugar de Expedición"
+                  size="small"
+                  fullWidth
+                  value={issuedIn}
+                  onChange={e => setIssuedIn(e.target.value)}
+                  required
+                  disabled={disabledAll}
+                  placeholder="Ej: Sincelejo Cartagene Bogotá"
+                />
+              </Box>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box sx={{ flex: 1 }}>
+                <TextField
                   label="Nombre"
                   size="small"
                   fullWidth
@@ -141,7 +159,6 @@ export default function OwnerFormModal({ open, onClose, onSuccess, editOwner }: 
                   fullWidth
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
-                  required
                   disabled={disabledAll}
                 />
               </Box>

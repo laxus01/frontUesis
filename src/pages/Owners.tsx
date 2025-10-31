@@ -19,9 +19,11 @@ import DataTable, { TableColumn, TableAction } from '../components/common/DataTa
 import OwnerFormModal from '../components/modals/OwnerFormModal';
 import { useOwnersList, Owner } from '../hooks/useOwnersList';
 import { formatNumber } from '../utils/formatting';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Owners(): JSX.Element {
   const { owners, loading, fetchOwners, deleteOwner } = useOwnersList();
+  const { canManageData } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
@@ -135,8 +137,8 @@ export default function Owners(): JSX.Element {
     },
   ];
 
-  // Define table actions
-  const actions: TableAction<Owner>[] = [
+  // Define table actions - Solo para ADMIN y OPERATOR
+  const actions: TableAction<Owner>[] = canManageData() ? [
     {
       label: 'Editar',
       icon: <EditIcon />,
@@ -149,7 +151,7 @@ export default function Owners(): JSX.Element {
       onClick: handleDeleteClick,
       color: 'error',
     },
-  ];
+  ] : [];
 
   return (
     <Box maxWidth={1200} mx="auto" p={2}>
@@ -165,14 +167,16 @@ export default function Owners(): JSX.Element {
           <Box sx={{ height: 3, width: 170, bgcolor: 'primary.main', borderRadius: 1 }} />
         </Box>
         
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenModal}
-          sx={{ borderRadius: 2 }}
-        >
-          Nuevo Propietario
-        </Button>
+        {canManageData() && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenModal}
+            sx={{ borderRadius: 2 }}
+          >
+            Nuevo Propietario
+          </Button>
+        )}
       </Box>
 
       {/* Data Table */}
@@ -186,26 +190,28 @@ export default function Owners(): JSX.Element {
         pageSize={5}
         stickyHeader
         maxHeight={600}
-        exportConfig={{
+        exportConfig={canManageData() ? {
           endpoint: '/owner/export/excel',
           filename: 'listado-propietarios.xlsx'
-        }}
+        } : undefined}
       />
 
-      {/* Floating Action Button for mobile */}
-      <Fab
-        color="primary"
-        aria-label="agregar propietario"
-        onClick={handleOpenModal}
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          display: { xs: 'flex', sm: 'none' },
-        }}
-      >
-        <AddIcon />
-      </Fab>
+      {/* Floating Action Button for mobile - Solo para ADMIN y OPERATOR */}
+      {canManageData() && (
+        <Fab
+          color="primary"
+          aria-label="agregar propietario"
+          onClick={handleOpenModal}
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            display: { xs: 'flex', sm: 'none' },
+          }}
+        >
+          <AddIcon />
+        </Fab>
+      )}
 
       {/* Owner Form Modal */}
       <OwnerFormModal

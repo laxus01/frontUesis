@@ -32,8 +32,8 @@ export const useUsers = () => {
       setLoading(true);
       setError(null);
       const response = await http.post<SystemUser>('/users', payload);
-      // Agregar el nuevo usuario al estado inmediatamente
-      setUsers(prevUsers => [...prevUsers, response.data]);
+      // Recargar la lista completa para obtener todos los datos del servidor
+      await fetchUsers();
       return { success: true, data: response.data };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Error al crear usuario';
@@ -52,9 +52,9 @@ export const useUsers = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await http.put<SystemUser>(`/users/${id}`, payload);
-      // Actualizar el usuario en el estado inmediatamente
-      setUsers(prevUsers => prevUsers.map(user => user.id === id ? response.data : user));
+      const response = await http.patch<SystemUser>(`/users/${id}`, payload);
+      // Recargar la lista completa para obtener todos los datos actualizados del servidor
+      await fetchUsers();
       return { success: true, data: response.data };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Error al actualizar usuario';
@@ -74,8 +74,8 @@ export const useUsers = () => {
       setLoading(true);
       setError(null);
       await http.delete(`/users/${id}`);
-      // Eliminar el usuario del estado inmediatamente
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
+      // Recargar la lista completa después de eliminar
+      await fetchUsers();
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Error al eliminar usuario';

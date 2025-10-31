@@ -25,10 +25,12 @@ import {
 import { DataTable } from '../components/common/DataTable';
 import DriverFormModal, { Driver } from '../components/modals/DriverFormModal';
 import { useDriversList } from '../hooks/useDriversList';
+import { useAuth } from '../hooks/useAuth';
 import type { TableColumn, TableAction } from '../components/common/DataTable';
 
 export default function Drivers() {
   const { drivers, loading, fetchDrivers, deleteDriver, toggleDriverState } = useDriversList();
+  const { canManageData } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -214,7 +216,8 @@ export default function Drivers() {
     },
   ];
 
-  const actions: TableAction<Driver>[] = [
+  // Solo mostrar acciones si el usuario puede gestionar datos (ADMIN o OPERATOR)
+  const actions: TableAction<Driver>[] = canManageData() ? [
     {
       label: 'Editar',
       icon: <Edit />,
@@ -236,7 +239,7 @@ export default function Drivers() {
       onClick: handleDelete,
       color: 'error',
     },
-  ];
+  ] : [];
 
   return (
     <Box maxWidth={1200} mx="auto" p={2}>
@@ -252,13 +255,15 @@ export default function Drivers() {
           <Box sx={{ height: 3, width: 170, bgcolor: 'primary.main', borderRadius: 1 }} />
         </Box>
         
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAdd}
-        >
-          Agregar Conductor
-        </Button>
+        {canManageData() && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+          >
+            Agregar Conductor
+          </Button>
+        )}
       </Box>
 
       <DataTable
@@ -271,10 +276,10 @@ export default function Drivers() {
         paginated
         pageSize={10}
         emptyMessage="No hay conductores registrados"
-        exportConfig={{
+        exportConfig={canManageData() ? {
           endpoint: '/drivers/export/excel',
           filename: 'listado-conductores.xlsx'
-        }}
+        } : undefined}
       />
 
       <DriverFormModal

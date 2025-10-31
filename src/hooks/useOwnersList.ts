@@ -9,6 +9,7 @@ export interface Owner {
   phone: string;
   email: string;
   address: string;
+  issuedIn?: string;
   createdAt?: string;
   updatedAt?: string;
 }

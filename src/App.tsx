@@ -14,10 +14,12 @@ import AbsolutePrintCard from './pages/AbsolutePrintCard';
 import AbsoluteAdministrationPaymentPrint from './pages/AbsoluteAdministrationPaymentPrint';
 import Administration from './pages/Administration';
 import AdministrationPayments from './pages/AdministrationPayments';
-import IncomeCertificate from './pages/IncomeCertificate';
+import IncomeCertificates from './pages/IncomeCertificates';
+import WorkCertificate from './pages/WorkCertificate';
 import Owners from './pages/Owners';
 import OperationCardsQuery from './pages/OperationCardsQuery';
 import Users from './pages/Users';
+import Policies from './pages/Policies';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App(): JSX.Element {
@@ -152,20 +154,25 @@ function App(): JSX.Element {
                 {/* Rutas públicas */}
                 <Route path="/" element={<Home />} />
                 
-                {/* Rutas protegidas - ADMIN y OPERATOR */}
+                {/* Rutas protegidas - ADMIN y OPERATOR pueden gestionar, VIEWER solo ver */}
                 <Route path="/vehicles" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR', 'VIEWER']}>
                     <Vehicles />
                   </ProtectedRoute>
                 } />
                 <Route path="/drivers" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR', 'VIEWER']}>
                     <Drivers />
                   </ProtectedRoute>
                 } />
                 <Route path="/owners" element={
-                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR', 'VIEWER']}>
                     <Owners />
+                  </ProtectedRoute>
+                } />
+                <Route path="/policies" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN']}>
+                    <Policies />
                   </ProtectedRoute>
                 } />
                 <Route path="/control-sheet" element={
@@ -203,10 +210,15 @@ function App(): JSX.Element {
                   </ProtectedRoute>
                 } />
                 
-                {/* Rutas de documentos - Todos los usuarios autenticados */}
+                {/* Rutas de documentos - Solo ADMIN y OPERATOR */}
                 <Route path="/documents" element={
-                  <ProtectedRoute>
-                    <IncomeCertificate />
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                    <IncomeCertificates />
+                  </ProtectedRoute>
+                } />
+                <Route path="/documents/work-certificate" element={
+                  <ProtectedRoute allowedPermissions={['ADMIN', 'OPERATOR']}>
+                    <WorkCertificate />
                   </ProtectedRoute>
                 } />
                 

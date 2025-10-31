@@ -25,24 +25,12 @@ api.interceptors.request.use((config) => {
 
   // Add companyId header from storage
   try {
-    // First try to get companyId directly from sessionStorage
-    let companyId = sessionStorage.getItem('companyId');
+    let companyId: string | null = null;
     
-    // If not found, try to extract from company object in sessionStorage
-    if (!companyId) {
-      const companyData = sessionStorage.getItem('company');
-      if (companyData) {
-        const company = JSON.parse(companyData);
-        companyId = company?.id?.toString();
-      }
-    }
+    // First try to get companyId directly from localStorage
+    companyId = localStorage.getItem('companyId');
     
-    // If still not found, try localStorage
-    if (!companyId) {
-      companyId = localStorage.getItem('companyId');
-    }
-    
-    // If still not found, try to extract from company object in localStorage
+    // If not found, try to extract from company object in localStorage
     if (!companyId) {
       const companyData = localStorage.getItem('company');
       if (companyData) {
@@ -51,14 +39,22 @@ api.interceptors.request.use((config) => {
       }
     }
     
+    // If still not found, try to extract from user object in localStorage
+    if (!companyId) {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        companyId = user?.user?.company?.id?.toString();
+      }
+    }
+    
     if (companyId) {
       config.headers = config.headers ?? {};
-      if (!('companyId' in config.headers)) {
-        (config.headers as any).companyId = companyId;
-      }
+      config.headers.set('companyId', companyId);
     }
   } catch (error) {
     // ignore storage errors
+    console.error('Error setting companyId header:', error);
   }
 
   return config;

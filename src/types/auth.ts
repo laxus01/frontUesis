@@ -4,10 +4,17 @@ export interface Company {
   nit: string;
   phone: string;
   address: string;
+}
+
+export interface Policy {
+  id: number;
+  insurerId: number;
+  insurerName: string;
   contractual: string;
-  extraContractual: string;
   contractualExpires: string;
+  extraContractual: string;
   extraContractualExpires: string;
+  createdAt: string;
 }
 
 export interface User {
@@ -16,6 +23,7 @@ export interface User {
   user: string;
   permissions: 'ADMIN' | 'OPERATOR' | 'VIEWER';
   company: Company;
+  policy: Policy;
 }
 
 export interface AuthData {

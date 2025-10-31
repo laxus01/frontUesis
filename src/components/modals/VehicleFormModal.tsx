@@ -73,9 +73,9 @@ function WithDialogSelector({ label, value, options, onChange, onCreate, onNewIt
               onChange(typeof val === 'number' ? val : Number(val));
             }}
           >
-            {options.map((o) => (
+            {options?.map((o) => (
               <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
-            ))}
+            )) || []}
           </Select>
         </FormControl>
         <Tooltip title={`Agregar ${label}`}>
@@ -148,13 +148,11 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
 
   // Catalog state
   const [makeId, setMakeId] = useState(0);
-  const [insurerId, setInsurerId] = useState(0);
   const [communicationCompanyId, setCommunicationCompanyId] = useState(0);
   const [ownerId, setOwnerId] = useState(0);
 
   // Options state
   const [makeOptions, setMakeOptions] = useState<Option[]>([]);
-  const [insurerOptions, setInsurerOptions] = useState<Option[]>([]);
   const [communicationCompanyOptions, setCommunicationCompanyOptions] = useState<Option[]>([]);
   const [ownerOptions, setOwnerOptions] = useState<any[]>([]);
 
@@ -174,14 +172,12 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
         const cached = CatalogService.getCatalogsFromStorage();
         if (cached) {
           setMakeOptions(cached.makes);
-          setInsurerOptions(cached.insurers);
           setCommunicationCompanyOptions(cached.communicationCompanies);
         }
 
         // Then fetch fresh data
         const catalogs = await CatalogService.fetchCatalogs();
         setMakeOptions(catalogs.makes);
-        setInsurerOptions(catalogs.insurers);
         setCommunicationCompanyOptions(catalogs.communicationCompanies);
       } catch (e) {
         error('Error cargando catálogos');
@@ -230,7 +226,6 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
       setLine(editVehicle.line || '');
       setEntryDate(editVehicle.entryDate ? dayjs(editVehicle.entryDate) : null);
       setMakeId(editVehicle.make?.id || 0);
-      setInsurerId(editVehicle.insurer?.id || 0);
       setCommunicationCompanyId(editVehicle.communicationCompany?.id || 0);
       setOwnerId(editVehicle.owner?.id || 0);
 
@@ -254,7 +249,6 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
       setLine('');
       setEntryDate(null);
       setMakeId(0);
-      setInsurerId(0);
       setCommunicationCompanyId(0);
       setOwnerId(0);
       setOwnerQuery('');
@@ -265,8 +259,8 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
   }, [open]);
 
   const canSubmit = useMemo(() => {
-    return plate.trim() && model.trim() && internalNumber.trim() && makeId && insurerId && communicationCompanyId && ownerId;
-  }, [plate, model, internalNumber, makeId, insurerId, communicationCompanyId, ownerId]);
+    return plate.trim() && model.trim() && internalNumber.trim() && makeId && communicationCompanyId && ownerId;
+  }, [plate, model, internalNumber, makeId, communicationCompanyId, ownerId]);
 
   const handleClose = () => {
     if (!submitting) {
@@ -305,7 +299,6 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
         line: line.trim() || undefined,
         entryDate: entryDate ? entryDate.format('YYYY-MM-DD') : undefined,
         makeId,
-        insurerId,
         communicationCompanyId,
         ownerId,
         companyId: companyId ? parseInt(companyId) : undefined,
@@ -448,6 +441,7 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
                 <DatePicker
                   label="Fecha de Ingreso"
                   value={entryDate}
+                  maxDate={dayjs()}
                   onChange={setEntryDate}
                   slotProps={{
                     textField: {
@@ -471,19 +465,6 @@ export default function VehicleFormModal({ open, onClose, onSuccess, editVehicle
                   onNewItemCreated={(newItem) => setMakeOptions(prev => [...prev, newItem])}
                   icon={<DirectionsCarIcon />}
                   addButtonAria="Agregar marca"
-                  disabled={disabledAll}
-                /></Box>
-
-              <Box sx={{ flex: 1 }}>
-                <WithDialogSelector
-                  label="Aseguradora"
-                  value={insurerId}
-                  options={insurerOptions}
-                  onChange={setInsurerId}
-                  onCreate={CatalogService.createInsurer}
-                  onNewItemCreated={(newItem) => setInsurerOptions(prev => [...prev, newItem])}
-                  icon={<BusinessIcon />}
-                  addButtonAria="Agregar aseguradora"
                   disabled={disabledAll}
                 /></Box>
 

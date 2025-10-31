@@ -61,6 +61,13 @@ interface Vehicle {
   mobileNumber?: string;
   owner?: Owner;
   company?: Company;
+  police?: {
+    insurer?: Insurer;
+    contractual?: string;
+    contractualExpires?: string;
+    extraContractual?: string;
+    extraContractualExpires?: string;
+  };
 }
 
 interface Company {
@@ -198,10 +205,10 @@ export default function AbsolutePrintCard(): JSX.Element {
 
       {printableItem && (
         (() => {
-          const d: Driver = printableItem.driver || {} as any;
-          const v: Vehicle = printableItem.vehicle || {} as any;
-          const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ');
-          const qrValue = `${v.plate ?? ''}/${d.identification ?? ''}`;
+          const driver: Driver = printableItem.driver || {} as any;
+          const vehicle: Vehicle = printableItem.vehicle || {} as any;
+          const fullName = [driver.firstName, driver.lastName].filter(Boolean).join(' ');
+          const qrValue = `${vehicle.plate ?? ''}/${driver.identification ?? ''}`;
           return (
             <div style={{ marginBottom: '12mm' }}>
               <div>
@@ -212,8 +219,8 @@ export default function AbsolutePrintCard(): JSX.Element {
 
               {/* Foto del conductor */}
               <div id="photo" className="field">
-                {d.photo ? (
-                  <img src={d.photo} alt="Foto" style={{ width: '115px', height: '150px', objectFit: 'cover' }} />
+                {driver.photo ? (
+                  <img src={driver.photo} alt="Foto" style={{ width: '115px', height: '150px', objectFit: 'cover' }} />
                 ) : (
                   <span style={{ color: '#999' }}>FOTO</span>
                 )}
@@ -221,35 +228,35 @@ export default function AbsolutePrintCard(): JSX.Element {
 
               {/* Nombre e identificación */}
               <div id="name" className="field">{fullName || '\u2014'}</div>
-              <div id="identification" className="field">{d.identification || '\u2014'}</div>
-              <div id="issuedIn" className="field">{d.issuedIn || '\u2014'}</div>
+              <div id="identification" className="field">{driver.identification || '\u2014'}</div>
+              <div id="issuedIn" className="field">{driver.issuedIn || '\u2014'}</div>
 
               {/* Licencia / salud */}
-              <div id="category" className="field">{d.category || '\u2014'}</div>
-              <div id="expiresOn" className="field">{fmt(d.expiresOn) || '\u2014'}</div>
-              <div id="bloodType" className="field">{d.bloodType || '\u2014'}</div>
-              <div id="eps" className="field">{d.eps?.name || '\u2014'}</div>
+              <div id="category" className="field">{driver.category || '\u2014'}</div>
+              <div id="expiresOn" className="field">{fmt(driver.expiresOn) || '\u2014'}</div>
+              <div id="bloodType" className="field">{driver.bloodType || '\u2014'}</div>
+              <div id="eps" className="field">{driver.eps?.name || '\u2014'}</div>
 
               {/* Empresa */}
-              <div id="company" className="field">{v.company?.name || '\u2014'}</div>
-              <div id="nit_company" className="field">{v.company?.nit || '\u2014'}</div>
+              <div id="company" className="field">{vehicle.company?.name || '\u2014'}</div>
+              <div id="nit_company" className="field">{vehicle.company?.nit || '\u2014'}</div>
               
               {/* Vehículo y pólizas */}
-              <div id="plate" className="field">{v.plate || '\u2014'}</div>
+              <div id="plate" className="field">{vehicle.plate || '\u2014'}</div>
               <div id="soat" className="field">{printableItem.soat || '\u2014'}</div>
               <div id="soatExpires" className="field">{fmt(printableItem.soatExpires) || '\u2014'}</div>
               <div id="operationCard" className="field">{printableItem.operationCard || '\u2014'}</div>
               <div id="operationCardExpires" className="field">{fmt(printableItem.operationCardExpires) || '\u2014'}</div>
-              <div id="contractualExpires" className="field">{fmt(printableItem.contractualExpires) || '\u2014'}</div>
-              <div id="extraContractualExpires" className="field">{fmt(printableItem.extraContractualExpires) || '\u2014'}</div>
+              <div id="contractualExpires" className="field">{vehicle.police?.contractualExpires ? `${fmt(vehicle.police.contractualExpires)} ${vehicle.police.contractual || ''}` : '\u2014'}</div>
+              <div id="extraContractualExpires" className="field">{vehicle.police?.extraContractualExpires ? `${fmt(vehicle.police.extraContractualExpires)} ${vehicle.police.extraContractual || ''}` : '\u2014'}</div>
               <div id="technicalMechanicExpires" className="field">{fmt(printableItem.technicalMechanicExpires) || '\u2014'}</div>
 
               {/* Especificaciones vehículo */}
-              <div id="model" className="field">{v.model || '\u2014'}</div>
-              <div id="make" className="field">{v.make?.name || '\u2014'}</div>
-              <div id="insurer" className="field">{v.insurer?.name || '\u2014'}</div>
-              <div id="licenseNumber" className="field">{d.license || '\u2014'}</div>
-              <div id="phone" className="field">{d.phone || '\u2014'}</div>
+              <div id="model" className="field">{vehicle.model || '\u2014'}</div>
+              <div id="make" className="field">{vehicle.make?.name || '\u2014'}</div>
+              <div id="insurer" className="field">{vehicle.police?.insurer?.name || '\u2014'}</div>
+              <div id="licenseNumber" className="field">{driver.license || '\u2014'}</div>
+              <div id="phone" className="field">{driver.phone || '\u2014'}</div>
 
               {/* Radio / contactos adicionales 
               <div id="communicationCompany" className="field">{v.communicationCompany?.name || '\u2014'}</div>

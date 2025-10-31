@@ -9,6 +9,7 @@ import api from '../services/http';
 import { useNotify } from '../services/notify';
 import { useOwners, OwnerLite } from '../hooks/useOwners';
 import { formatNumber } from '../utils/formatting';
+import { useAuth } from '../hooks/useAuth';
 
 interface Vehicle { id: number; plate?: string }
 interface Administration {
@@ -23,6 +24,7 @@ interface Administration {
 const AdministrationPayments: React.FC = () => {
   // Modo: por rango de fechas o por vehículo
   const { success, error, warning } = useNotify();
+  const { canManageData } = useAuth();
   const [mode, setMode] = useState<'date' | 'vehicle' | 'owner'>('date');
 
   // Estado común
@@ -476,15 +478,17 @@ const AdministrationPayments: React.FC = () => {
               <Button variant="contained" disabled={!canSubmit || submitting} onClick={handleSubmit}>
                 {submitting ? 'CONSULTANDO...' : 'CONSULTAR'}
               </Button>
-              <Button
-                variant="contained"
-                color="success"
-                disabled={!canSubmit || exporting || submitting}
-                onClick={handleExport}
-                startIcon={<FileDownloadIcon />}
-              >
-                {exporting ? 'EXPORTANDO...' : 'EXPORTAR'}
-              </Button>
+              {canManageData() && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  disabled={!canSubmit || exporting || submitting}
+                  onClick={handleExport}
+                  startIcon={<FileDownloadIcon />}
+                >
+                  {exporting ? 'EXPORTANDO...' : 'EXPORTAR'}
+                </Button>
+              )}
               <Button variant="outlined" onClick={handleClear} disabled={submitting || exporting}>
                 LIMPIAR
               </Button>

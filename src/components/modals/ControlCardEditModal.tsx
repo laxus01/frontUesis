@@ -9,6 +9,7 @@ import {
   Box,
   TextField,
   Typography,
+  Alert,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import type { Dayjs } from 'dayjs';
@@ -31,6 +32,18 @@ interface ControlCardData {
     id: number;
     expiresOn?: string | null;
   };
+  vehicle?: {
+    id: number;
+    plate?: string;
+    police?: {
+      id: number;
+      state: number;
+      insurer?: {
+        id: number;
+        name: string;
+      };
+    };
+  };
 }
 
 interface ControlCardEditModalProps {
@@ -46,8 +59,11 @@ export default function ControlCardEditModal({
   onSuccess,
   controlCardData,
 }: ControlCardEditModalProps): JSX.Element {
-  const { success, error } = useNotify();
+  const { success, error, warning } = useNotify();
   const [submitting, setSubmitting] = useState(false);
+  const [assigningPolicy, setAssigningPolicy] = useState(false);
+  const [vehicleHasInactivePolicy, setVehicleHasInactivePolicy] = useState(false);
+  const [confirmAssignPolicyOpen, setConfirmAssignPolicyOpen] = useState(false);
 
   // Form state
   const [permitExpiresOn, setPermitExpiresOn] = useState<Dayjs | null>(null);
@@ -104,6 +120,10 @@ export default function ControlCardEditModal({
   // Load data when modal opens
   useEffect(() => {
     if (open && controlCardData) {
+      // Check if vehicle has inactive policy
+      const hasInactivePolicy = controlCardData.vehicle?.police?.state === 0;
+      setVehicleHasInactivePolicy(hasInactivePolicy);
+
       setPermitExpiresOn(parseDate(controlCardData.permitExpiresOn));
       const driverExpires = controlCardData.driver?.expiresOn;
       setDriverExpiresOn(parseDate(driverExpires));
@@ -157,6 +177,59 @@ export default function ControlCardEditModal({
     }
   }, [open]);
 
+  const handleAssignPolicyClick = () => {
+    if (!controlCardData?.vehicle?.id) {
+      warning('No hay vehículo asociado');
+      return;
+    }
+    setConfirmAssignPolicyOpen(true);
+  };
+
+  const handleAssignPolicyConfirm = async () => {
+    setConfirmAssignPolicyOpen(false);
+    setAssigningPolicy(true);
+    try {
+      // Get user data from localStorage
+      const rawUser = localStorage.getItem('user');
+      if (!rawUser) {
+        error('No se encontró información del usuario');
+        return;
+      }
+
+      const userData = JSON.parse(rawUser);
+      const user = userData.user || userData;
+
+      if (!user.policy?.id || !user.id) {
+        error('No se encontró información de póliza en el usuario');
+        return;
+      }
+
+      const payload = {
+        vehicleId: controlCardData?.vehicle?.id,
+        policyId: user.policy.id,
+        createdBy: Number(user.id)
+      };
+
+      await api.post('/vehicle-policies', payload);
+      success('Póliza asignada exitosamente');
+      
+      // Update the local state to reflect the change
+      setVehicleHasInactivePolicy(false);
+      
+      // Call onSuccess to refresh the parent component data
+      onSuccess?.();
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Error al asignar la póliza';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+    } finally {
+      setAssigningPolicy(false);
+    }
+  };
+
+  const handleAssignPolicyCancel = () => {
+    setConfirmAssignPolicyOpen(false);
+  };
+
   const handleSave = async () => {
     if (!controlCardData) return;
 
@@ -202,21 +275,41 @@ export default function ControlCardEditModal({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: { minHeight: '70vh' }
-      }}
-    >
-      <DialogTitle>
-        Editar Tarjeta de Control
-      </DialogTitle>
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { minHeight: '70vh' }
+        }}
+      >
+        <DialogTitle>
+          Editar Tarjeta de Control
+        </DialogTitle>
       
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 1 }}>
+          {/* Alert for inactive policy */}
+          {vehicleHasInactivePolicy && (
+            <Alert 
+              severity="error"
+              action={
+                <Button 
+                  color="inherit" 
+                  size="small"
+                  onClick={handleAssignPolicyClick}
+                  disabled={assigningPolicy}
+                >
+                  {assigningPolicy ? 'Asignando...' : 'Asignar Póliza'}
+                </Button>
+              }
+            >
+              Este vehículo no cuenta con póliza activa. No se puede imprimir la tarjeta de control.
+            </Alert>
+          )}
+
           {/* Permit Expiration and Note */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Box sx={{ flex: 1 }}>
@@ -393,5 +486,42 @@ export default function ControlCardEditModal({
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Diálogo de confirmación para asignar póliza */}
+    <Dialog
+      open={confirmAssignPolicyOpen}
+      onClose={handleAssignPolicyCancel}
+      aria-labelledby="assign-policy-dialog-title"
+    >
+      <DialogTitle id="assign-policy-dialog-title">
+        Confirmar Asignación de Póliza
+      </DialogTitle>
+      <DialogContent>
+        <Stack spacing={2}>
+          <Alert severity="warning">
+            ¿Está seguro que desea asignar la póliza vigente de la empresa a este vehículo?
+          </Alert>
+          {controlCardData?.vehicle?.plate && (
+            <Box>
+              <strong>Vehículo:</strong> {controlCardData.vehicle.plate}
+            </Box>
+          )}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleAssignPolicyCancel} color="inherit">
+          Cancelar
+        </Button>
+        <Button 
+          onClick={handleAssignPolicyConfirm} 
+          variant="contained" 
+          color="primary"
+          disabled={assigningPolicy}
+        >
+          Confirmar
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }

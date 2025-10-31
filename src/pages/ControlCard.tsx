@@ -18,6 +18,7 @@ import {
   DialogActions,
   Autocomplete,
   InputAdornment,
+  Alert,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import type { Dayjs } from 'dayjs';
@@ -262,22 +263,6 @@ export default function ControlCard(): JSX.Element {
           setCommunicationCompanies(catalogs.communicationCompanies || []);
           setOwners(catalogs.owners || []);
         }
-
-        // Load company insurance expiration dates from storage
-        try {
-          const rawCompany = localStorage.getItem('company');
-          if (rawCompany) {
-            const company = JSON.parse(rawCompany);
-            if (company.contractualExpires) {
-              setContractualExpires(dayjs(company.contractualExpires));
-            }
-            if (company.extraContractualExpires) {
-              setExtraContractualExpires(dayjs(company.extraContractualExpires));
-            }
-          }
-        } catch (e) {
-          console.error('Error loading company insurance dates', e);
-        }
       } catch (e: any) {
         console.error('Error loading initial data', e);
         const msg = e?.response?.data?.message || 'Error cargando datos';
@@ -350,6 +335,56 @@ export default function ControlCard(): JSX.Element {
     }
   };
 
+  const handleAssignPolicyClick = () => {
+    if (!selectedVehicleId) {
+      warning('No hay vehículo seleccionado');
+      return;
+    }
+    setConfirmAssignPolicyOpen(true);
+  };
+
+  const handleAssignPolicyConfirm = async () => {
+    setConfirmAssignPolicyOpen(false);
+    setAssigningPolicy(true);
+    try {
+      // Get user data from localStorage
+      const rawUser = localStorage.getItem('user');
+      if (!rawUser) {
+        error('No se encontró información del usuario');
+        return;
+      }
+
+      const userData = JSON.parse(rawUser);
+      const user = userData.user || userData;
+
+      if (!user.policy?.id || !user.id) {
+        error('No se encontró información de póliza en el usuario');
+        return;
+      }
+
+      const payload = {
+        vehicleId: selectedVehicleId,
+        policyId: user.policy.id,
+        createdBy: Number(user.id)
+      };
+
+      await api.post('/vehicle-policies', payload);
+      success('Póliza asignada exitosamente');
+
+      // Refresh vehicle data
+      await handleSearchVehicle();
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Error al asignar la póliza';
+      error(Array.isArray(msg) ? msg.join('\n') : String(msg));
+    } finally {
+      setAssigningPolicy(false);
+    }
+  };
+
+  const handleAssignPolicyCancel = () => {
+    setConfirmAssignPolicyOpen(false);
+  };
+
   const handleSearchVehicle = async () => {
     const q = plateQuery.trim().toUpperCase();
     if (!q) {
@@ -367,12 +402,28 @@ export default function ControlCard(): JSX.Element {
         setInternalNumber(String(vehicle?.internalNumber || ''));
         setMobileNumber(String(vehicle?.mobileNumber || ''));
         setMakeId(Number(vehicle?.make?.id || 0));
-        setInsurerId(Number(vehicle?.insurer?.id || 0));
         setCommunicationCompanyId(Number(vehicle?.communicationCompany?.id || 0));
         setOwnerId(Number(vehicle?.owner?.id || 0));
         setOwnerName(String(vehicle?.owner?.name || ''));
         setSelectedVehicleId(Number(vehicle?.id || 0));
-        success(`Vehículo encontrado: ${vehicle?.plate} - ${vehicle?.model}`);
+
+        // Handle vehicle policy - check if state is 1 (active)
+        if (vehicle?.police && vehicle.police.state === 1) {
+          setVehiclePolicy(vehicle.police);
+          setInsurerId(Number(vehicle.police.insurer?.id || 0));
+          // Set policy expiration dates
+          if (vehicle.police.contractualExpires) {
+            setContractualExpires(dayjs(vehicle.police.contractualExpires));
+          }
+          if (vehicle.police.extraContractualExpires) {
+            setExtraContractualExpires(dayjs(vehicle.police.extraContractualExpires));
+          }
+          success(`Vehículo encontrado: ${vehicle?.plate} - ${vehicle?.model}`);
+        } else {
+          setVehiclePolicy(null);
+          setInsurerId(0);
+          warning(`Vehículo encontrado pero no tiene póliza activa`);
+        }
       } else if (data.length > 1) {
         setIdOptions(data);
         success(`Se encontraron ${data.length} conductores`);
@@ -398,6 +449,9 @@ export default function ControlCard(): JSX.Element {
   const [ownerId, setOwnerId] = useState<number>(0);
   const [ownerName, setOwnerName] = useState<string>('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<number>(0);
+  const [vehiclePolicy, setVehiclePolicy] = useState<any>(null);
+  const [assigningPolicy, setAssigningPolicy] = useState(false);
+  const [confirmAssignPolicyOpen, setConfirmAssignPolicyOpen] = useState(false);
 
   const [plateQuery, setPlateQuery] = useState('');
 
@@ -432,6 +486,20 @@ export default function ControlCard(): JSX.Element {
       current.isBefore(earliest) ? current : earliest
     );
   }, [soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
+
+  // Validate that all required fields in Control Sheet are filled
+  const isControlSheetValid = useMemo(() => {
+    return !!(
+      permitExpiresOn &&
+      soat && soat.trim() &&
+      soatExpires &&
+      operationCard && operationCard.trim() &&
+      operationCardExpires &&
+      contractualExpires &&
+      extraContractualExpires &&
+      technicalMechanicExpires
+    );
+  }, [permitExpiresOn, soat, soatExpires, operationCard, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
 
   // Auto-adjust permitExpiresOn if it exceeds the maximum allowed date
   useEffect(() => {
@@ -820,41 +888,6 @@ export default function ControlCard(): JSX.Element {
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Box sx={{ flex: 1 }}>
                     <FormControl fullWidth size="small" disabled required>
-                      <InputLabel id="make-select-label">Marca</InputLabel>
-                      <Select
-                        labelId="make-select-label"
-                        label="Marca"
-                        value={makeId}
-                        displayEmpty
-                        onChange={e => setMakeId(Number(e.target.value))}
-                      >
-                        {makes.map(o => (
-                          <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <FormControl fullWidth size="small" disabled required>
-                      <InputLabel id="insurer-select-label">Aseguradora</InputLabel>
-                      <Select
-                        labelId="insurer-select-label"
-                        label="Aseguradora"
-                        value={insurerId}
-                        displayEmpty
-                        onChange={e => setInsurerId(Number(e.target.value))}
-                      >
-                        {insurers.map(o => (
-                          <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                </Stack>
-
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <Box sx={{ flex: 1 }}>
-                    <FormControl fullWidth size="small" disabled required>
                       <InputLabel id="commcompany-select-label">Compañía de comunicación</InputLabel>
                       <Select
                         labelId="commcompany-select-label"
@@ -881,6 +914,64 @@ export default function ControlCard(): JSX.Element {
                     />
                   </Box>
                 </Stack>
+
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <Box sx={{ flex: 1 }}>
+                    <FormControl fullWidth size="small" disabled required>
+                      <InputLabel id="make-select-label">Marca</InputLabel>
+                      <Select
+                        labelId="make-select-label"
+                        label="Marca"
+                        value={makeId}
+                        displayEmpty
+                        onChange={e => setMakeId(Number(e.target.value))}
+                      >
+                        {makes.map(o => (
+                          <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  {/* Mostrar aseguradora si hay póliza activa, sino mostrar alerta */}
+                  <Box sx={{ flex: 1 }}>{vehiclePolicy ? (
+                    <FormControl fullWidth size="small" disabled required>
+                      <InputLabel id="insurer-select-label">Aseguradora</InputLabel>
+                      <Select
+                        labelId="insurer-select-label"
+                        label="Aseguradora"
+                        value={insurerId}
+                        displayEmpty
+                        onChange={e => setInsurerId(Number(e.target.value))}
+                      >
+                        {insurers.map(o => (
+                          <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : selectedVehicleId > 0 && (
+                    <Alert 
+                      severity="error" 
+                      sx={{ mt: 1 }}
+                      action={
+                        <Button 
+                          color="inherit" 
+                          size="small"
+                          onClick={handleAssignPolicyClick}
+                          disabled={assigningPolicy}
+                        >
+                          {assigningPolicy ? 'Asignando...' : 'Asignar Póliza'}
+                        </Button>
+                      }
+                    >
+                      Este vehículo no cuenta con póliza activa. No se puede generar la tarjeta de control.
+                    </Alert>
+                  )}</Box>
+
+                </Stack>
+
+
+
               </Stack>
             </Box>
           </CardContent>
@@ -999,7 +1090,7 @@ export default function ControlCard(): JSX.Element {
                   <Button
                     variant="contained"
                     onClick={saveControlSheet}
-                    disabled={submitting}
+                    disabled={submitting || !vehiclePolicy || !isControlSheetValid}
                   >
                     Guardar
                   </Button>
@@ -1009,6 +1100,42 @@ export default function ControlCard(): JSX.Element {
           </CardContent>
         </Card>
       </AccordionSection>
+
+      {/* Diálogo de confirmación para asignar póliza */}
+      <Dialog
+        open={confirmAssignPolicyOpen}
+        onClose={handleAssignPolicyCancel}
+        aria-labelledby="assign-policy-dialog-title"
+      >
+        <DialogTitle id="assign-policy-dialog-title">
+          Confirmar Asignación de Póliza
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Alert severity="warning">
+              ¿Está seguro que desea asignar la póliza vigente de la empresa a este vehículo?
+            </Alert>
+            {plate && (
+              <Box>
+                <strong>Vehículo:</strong> {plate} - {model}
+              </Box>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAssignPolicyCancel} color="inherit">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleAssignPolicyConfirm} 
+            variant="contained" 
+            color="primary"
+            disabled={assigningPolicy}
+          >
+            Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

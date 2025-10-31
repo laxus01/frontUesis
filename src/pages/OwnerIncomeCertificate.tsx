@@ -19,11 +19,13 @@ import { formatNumber } from '../utils/formatting';
 import { OwnerLite } from '../hooks/useOwners';
 
 
-interface IncomeCertificateProps {
+interface VehicleLite { id: number; plate: string; owner?: { id: number; identification: string; name: string; } }
+
+interface OwnerIncomeCertificateProps {
   hideTitle?: boolean;
 }
 
-export default function IncomeCertificate({ hideTitle = false }: IncomeCertificateProps): JSX.Element {
+export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncomeCertificateProps): JSX.Element {
   const { success, warning, error } = useNotify();
   const [submitting, setSubmitting] = useState(false);
   const [ownerId, setOwnerId] = useState<number>(0);
@@ -38,6 +40,14 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
   const [ownerNameLoading, setOwnerNameLoading] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<OwnerLite | null>(null);
   
+  // Vehicle search state
+  const [plateQuery, setPlateQuery] = useState<string>('');
+  const [plateOptions, setPlateOptions] = useState<string[]>([]);
+  const [plateResults, setPlateResults] = useState<VehicleLite[]>([]);
+  const [plateLoading, setPlateLoading] = useState<boolean>(false);
+  const [plate, setPlate] = useState<string>('');
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  
   const disabledAll = submitting;
 
   const resetOwnerSearch = () => {
@@ -47,6 +57,65 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
     setOwnerId(0);
     setOwnerIdOptions([]);
     setOwnerNameOptions([]);
+  };
+
+  const resetVehicleSearch = () => {
+    setPlate('');
+    setPlateQuery('');
+    setSelectedVehicleId(null);
+    setPlateOptions([]);
+    setPlateResults([]);
+  };
+
+  const resetAll = () => {
+    resetOwnerSearch();
+    resetVehicleSearch();
+    setAmount('');
+  };
+
+  const populateVehicleForm = (vehicle: VehicleLite) => {
+    if (!vehicle) return;
+    setPlate(String(vehicle.plate || ''));
+    setSelectedVehicleId(vehicle.id);
+    setPlateQuery(String(vehicle.plate || ''));
+    // Auto-populate owner info from vehicle
+    if (vehicle.owner) {
+      setOwnerId(vehicle.owner.id);
+      setOwnerIdQuery(formatNumber(String(vehicle.owner.identification || '')));
+      setOwnerNameQuery(String(vehicle.owner.name || ''));
+      setSelectedOwner({
+        id: vehicle.owner.id,
+        identification: vehicle.owner.identification,
+        name: vehicle.owner.name
+      } as OwnerLite);
+    }
+  };
+
+  const handlePlateChange = (_event: any, newValue: string | null) => {
+    const val = (newValue || '').toUpperCase();
+    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === val.trim());
+    if (found) {
+      populateVehicleForm(found);
+    } else {
+      setPlate(val);
+      setSelectedVehicleId(null);
+    }
+  };
+
+  const handlePlateInputChange = (_event: any, newInputValue: string, reason: string) => {
+    const next = (newInputValue || '').toUpperCase();
+    setPlateQuery(next);
+    if (reason === 'input') {
+      setPlate(next);
+      setSelectedVehicleId(null);
+    }
+  };
+
+  const handlePlateBlur = () => {
+    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === plateQuery.trim());
+    if (found) {
+      populateVehicleForm(found);
+    }
   };
 
   const handleOwnerSelection = (owner: OwnerLite | null) => {
@@ -106,6 +175,28 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
     return () => clearTimeout(handle);
   }, [ownerNameQuery]);
 
+  // Search vehicles by plate
+  useEffect(() => {
+    const q = (plateQuery || '').trim();
+    if (!q) { setPlateOptions([]); setPlateResults([]); return; }
+    const handle = setTimeout(async () => {
+      setPlateLoading(true);
+      try {
+        const res = await api.get<VehicleLite[]>('/vehicles', { params: { plate: q } });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setPlateResults(data);
+        const plates = Array.from(new Set(data.map(v => String((v as any).plate || '').trim().toUpperCase()).filter(Boolean)));
+        setPlateOptions(plates);
+      } catch (e) {
+        setPlateOptions([]);
+        setPlateResults([]);
+      } finally {
+        setPlateLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [plateQuery]);
+
 
 
   const amountNumber = useMemo(() => moneyToInteger(amount), [amount]);
@@ -117,16 +208,16 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
     return `${toTitleCase(words)} Pesos MCTE.`;
   }, [amountNumber]);
 
-  const canSubmit = useMemo(() => ownerId > 0 && amountNumber > 0, [ownerId, amountNumber]);
+  const canSubmit = useMemo(() => ownerId > 0 && amountNumber > 0 && selectedVehicleId !== null && selectedVehicleId > 0, [ownerId, amountNumber, selectedVehicleId]);
 
   const onGenerate = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !selectedVehicleId) return;
     setSubmitting(true);
     try {
       const payload: any = { amountNumber, amountWords };
-      const res = await api.post(`/documents/taxi-certificate/${ownerId}`, payload, { responseType: 'blob' as any });
+      const res = await api.post(`/documents/owner-certificate/${ownerId}/${selectedVehicleId}`, payload, { responseType: 'blob' as any });
       const dispo = (res as any)?.headers?.['content-disposition'] || (res as any)?.headers?.['Content-Disposition'];
-      let filename = 'income-certificate.pdf';
+      let filename = 'certificado_propietario.pdf';
       if (typeof dispo === 'string') {
         const match = dispo.match(/filename\*=UTF-8''([^;\n]+)|filename="?([^";\n]+)"?/i);
         const raw = decodeURIComponent(match?.[1] || match?.[2] || '');
@@ -157,10 +248,10 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
             <DescriptionIcon color="primary" sx={{ fontSize: 28 }} />
             <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
-              Certificación de Ingresos
+              Certificación de Ingresos - Propietario
             </Typography>
           </Box>
-          <Box sx={{ height: 3, width: 220, bgcolor: 'primary.main', borderRadius: 1, mb: 2 }} />
+          <Box sx={{ height: 3, width: 280, bgcolor: 'primary.main', borderRadius: 1, mb: 2 }} />
         </>
       )}
 
@@ -168,6 +259,45 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
         <CardContent>
           <Stack spacing={2}>
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Vehículo
+            </Typography>
+            
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box sx={{ flex: 1 }}>
+                <Autocomplete
+                  options={plateOptions}
+                  value={plate || null}
+                  onChange={handlePlateChange}
+                  inputValue={plateQuery}
+                  onInputChange={handlePlateInputChange}
+                  onBlur={handlePlateBlur}
+                  loading={plateLoading}
+                  disabled={disabledAll}
+                  disablePortal
+                  filterOptions={(x) => x}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Placa"
+                      size="small"
+                      fullWidth
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {plateLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                      required
+                    />
+                  )}
+                />
+              </Box>
+            </Stack>
+
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
               Propietario
             </Typography>
             
@@ -273,7 +403,7 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
               <Button
                 variant="outlined"
                 disabled={disabledAll}
-                onClick={() => { resetOwnerSearch(); setAmount(''); }}
+                onClick={resetAll}
               >
                 Limpiar
               </Button>
