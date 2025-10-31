@@ -157,38 +157,38 @@ export default function AbsolutePrintCard(): JSX.Element {
           background: #fff;
         }
         .field { position: absolute; font-family: Arial, Helvetica, sans-serif; font-size: 12pt; }
-        #qr { top: 60px; right: 0px; font-size: 14pt; }
-        #photo { top: 90px; left: 20px; }
-        #name { top: 115px; left: 165px; font-size: 14pt; font-weight: 600; }
-        #identification { top: 160px; left: 165px; font-size: 14pt; }
-        #issuedIn { top: 160px; left: 400px; font-size: 14pt; }
-        #category { top: 210px; left: 165px; font-size: 14pt; }
-        #expiresOn { top: 210px; left: 300px; font-size: 14pt; }
-        #bloodType { top: 210px; left: 450px; font-size: 14pt; }
-        #eps { top: 210px; left: 600px; font-size: 14pt; }
-        #communicationCompany { top: 275px; left: 20px; font-size: 14pt; }
-        #plate { top: 380px; left: 25px; font-size: 20pt; }
-        #soat { top: 380px; left: 170px; font-size: 14pt; }
-        #soatExpires { top: 380px; left: 500px; font-size: 14pt; }
-        #operationCard { top: 430px; left: 170px; font-size: 14pt; }
-        #operationCardExpires { top: 430px; left: 500px; font-size: 14pt; }
-        #contractualExpires { top: 485px; left: 170px; font-size: 14pt; }
-        #extraContractualExpires { top: 485px; left: 360px; font-size: 14pt; }
-        #technicalMechanicExpires { top: 485px; left: 550px; font-size: 14pt; }
-        #model { top: 560px; left: 20px; font-size: 14pt; }
-        #make { top: 560px; left: 380px; font-size: 14pt; }
-        #insurer { top: 610px; left: 20px; font-size: 14pt; }
-        #licenseNumber { top: 610px; left: 380px; font-size: 14pt; }
-        #phone { top: 660px; left: 20px; font-size: 14pt; }
-        #ownerPhone { top: 660px; left: 380px; font-size: 14pt; }
-        #communicationCompany { top: 220px; left: 1030px; font-size: 14pt; }
-        #mobileNumber { top: 265px; left: 1030px; font-size: 14pt; }
-        #ownerAddress { top: 290px; left: 1030px; font-size: 14pt; }
-        #note { top: 450px; left: 880px; font-size: 12pt; }
-        #internalNumber { top: 25px; right: 70px; font-size: 16pt; }
-        #permitExpiresOn { top: 700px; left: 150px; font-size: 24pt; }
-        #company { top: 275px; left: 20px; font-size: 14pt; }
-        #nit_company { top: 275px; left: 460px; font-size: 14pt; }
+        #qr { top: 120px; right: 50px; font-size: 14pt; }
+        #photo { top: 130px; left: 40px; }
+        #name { top: 155px; left: 185px; font-size: 14pt; font-weight: 600; }
+        #identification { top: 200px; left: 185px; font-size: 14pt; }
+        #issuedIn { top: 200px; left: 420px; font-size: 14pt; }
+        #category { top: 250px; left: 185px; font-size: 14pt; }
+        #expiresOn { top: 250px; left: 320px; font-size: 14pt; }
+        #bloodType { top: 250px; left: 470px; font-size: 14pt; }
+        #eps { top: 250px; left: 620px; font-size: 14pt; }
+        #communicationCompany { top: 315px; left: 40px; font-size: 14pt; }
+        #plate { top: 420px; left: 45px; font-size: 20pt; }
+        #soat { top: 420px; left: 190px; font-size: 14pt; }
+        #soatExpires { top: 420px; left: 520px; font-size: 14pt; }
+        #operationCard { top: 470px; left: 190px; font-size: 14pt; }
+        #operationCardExpires { top: 470px; left: 520px; font-size: 14pt; }
+        #contractualExpires { top: 525px; left: 190px; font-size: 14pt; }
+        #extraContractualExpires { top: 525px; left: 380px; font-size: 14pt; }
+        #technicalMechanicExpires { top: 525px; left: 570px; font-size: 14pt; }
+        #model { top: 600px; left: 40px; font-size: 14pt; }
+        #make { top: 600px; left: 400px; font-size: 14pt; }
+        #insurer { top: 650px; left: 40px; font-size: 14pt; }
+        #licenseNumber { top: 650px; left: 400px; font-size: 14pt; }
+        #phone { top: 700px; left: 40px; font-size: 14pt; }
+        #ownerPhone { top: 700px; left: 400px; font-size: 14pt; }
+        #communicationCompany { top: 260px; left: 1050px; font-size: 14pt; }
+        #mobileNumber { top: 305px; left: 1050px; font-size: 14pt; }
+        #ownerAddress { top: 330px; left: 1050px; font-size: 14pt; }
+        #note { top: 490px; left: 900px; font-size: 12pt; }
+        #internalNumber { top: 65px; right: 70px; font-size: 16pt; }
+        #permitExpiresOn { top: 740px; left: 170px; font-size: 24pt; }
+        #company { top: 315px; left: 40px; font-size: 14pt; }
+        #nit_company { top: 315px; left: 480px; font-size: 14pt; }
       `}</style>
 
       {loading && (
