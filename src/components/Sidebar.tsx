@@ -7,6 +7,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import PlagiarismOutlinedIcon from '@mui/icons-material/PlagiarismOutlined';
+import CarCrashIcon from '@mui/icons-material/CarCrash';
 import { useAuth } from '../hooks/useAuth';
 
 type SidebarProps = {
@@ -71,6 +72,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           >
             <PersonAddAlt1Icon color="inherit" sx={{ fontSize: 18 }} />
             <span>Conductores</span>
+          </NavLink>
+        </li>
+        
+        {/* Accidentalidad - Todos los usuarios autenticados */}
+        <li>
+          <NavLink
+            to="/accidents"
+            onClick={onItemClick}
+            className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+          >
+            <CarCrashIcon color="inherit" sx={{ fontSize: 18 }} />
+            <span>Accidentalidad</span>
           </NavLink>
         </li>
         

@@ -20,6 +20,7 @@ import Owners from './pages/Owners';
 import OperationCardsQuery from './pages/OperationCardsQuery';
 import Users from './pages/Users';
 import Policies from './pages/Policies';
+import Accidents from './pages/Accidents';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App(): JSX.Element {
@@ -173,6 +174,11 @@ function App(): JSX.Element {
                 <Route path="/policies" element={
                   <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
                     <Policies />
+                  </ProtectedRoute>
+                } />
+                <Route path="/accidents" element={
+                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
+                    <Accidents />
                   </ProtectedRoute>
                 } />
                 <Route path="/control-sheet" element={
