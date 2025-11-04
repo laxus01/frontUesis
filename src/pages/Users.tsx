@@ -225,7 +225,7 @@ const Users: React.FC = () => {
         </Button>
       </Box>
 
-      {loading && users.length === 0 ? (
+      {users.length === 0 && loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
