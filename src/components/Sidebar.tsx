@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import { NavLink } from 'react-router-dom';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
@@ -23,16 +23,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const [adminOpen, setAdminOpen] = useState<boolean>(false);
   const [controlOpen, setControlOpen] = useState<boolean>(false);
   const [documentsOpen, setDocumentsOpen] = useState<boolean>(false);
-  const companyId: number | null = (() => {
-    try {
-      const raw = localStorage.getItem('company');
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      return typeof parsed?.id === 'number' ? parsed.id : null;
-    } catch {
-      return null;
+  const [companyId, setCompanyId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const storedCompanyId = localStorage.getItem('companyId');
+    if (storedCompanyId) {
+      setCompanyId(Number(storedCompanyId));
     }
-  })();
+  }, []);
+
   const showAdministration = companyId === 1;
 
   return (
