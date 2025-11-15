@@ -23,6 +23,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const [adminOpen, setAdminOpen] = useState<boolean>(false);
   const [controlOpen, setControlOpen] = useState<boolean>(false);
   const [documentsOpen, setDocumentsOpen] = useState<boolean>(false);
+  const companyId: number | null = (() => {
+    try {
+      const raw = localStorage.getItem('company');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return typeof parsed?.id === 'number' ? parsed.id : null;
+    } catch {
+      return null;
+    }
+  })();
+  const showAdministration = companyId === 1;
 
   return (
     <nav className="h-full w-full bg-white border-r border-gray-200" aria-label="Menú principal">
@@ -130,49 +141,51 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
           </li>
         )}
         {/* Administración */}
-        <li>
-          <button
-            type="button"
-            onClick={() => setAdminOpen(v => !v)}
-            className={`${linkBase} w-full justify-between`}
-            aria-expanded={adminOpen}
-            aria-controls="submenu-admin"
-          >
-            <span className="flex items-center gap-2">
-              <AdminPanelSettingsIcon color="inherit" sx={{ fontSize: 18 }} />
-              <span>Administración</span>
-            </span>
-            {adminOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </button>
-          {adminOpen && (
-            <ul id="submenu-admin" className="mt-1 ml-6 space-y-1">
-              {/* Generar pago - Solo ADMIN */}
-              {isAdmin() && (
+        {showAdministration && (
+          <li>
+            <button
+              type="button"
+              onClick={() => setAdminOpen(v => !v)}
+              className={`${linkBase} w-full justify-between`}
+              aria-expanded={adminOpen}
+              aria-controls="submenu-admin"
+            >
+              <span className="flex items-center gap-2">
+                <AdminPanelSettingsIcon color="inherit" sx={{ fontSize: 18 }} />
+                <span>Administración</span>
+              </span>
+              {adminOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </button>
+            {adminOpen && (
+              <ul id="submenu-admin" className="mt-1 ml-6 space-y-1">
+                {/* Generar pago - Solo ADMIN */}
+                {isAdmin() && (
+                  <li>
+                    <NavLink
+                      to="/administration"
+                      onClick={onItemClick}
+                      className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                    >
+                      <span className="material-symbols-outlined text-base">add_card</span>
+                      <span>Generar pago</span>
+                    </NavLink>
+                  </li>
+                )}
+                {/* Consultar pagos - Todos los usuarios */}
                 <li>
                   <NavLink
-                    to="/administration"
+                    to="/reports/administration-payments"
                     onClick={onItemClick}
                     className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
                   >
-                    <span className="material-symbols-outlined text-base">add_card</span>
-                    <span>Generar pago</span>
+                    <span className="material-symbols-outlined text-base">payments</span>
+                    <span>Consultar pagos</span>
                   </NavLink>
                 </li>
-              )}
-              {/* Consultar pagos - Todos los usuarios */}
-              <li>
-                <NavLink
-                  to="/reports/administration-payments"
-                  onClick={onItemClick}
-                  className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-                >
-                  <span className="material-symbols-outlined text-base">payments</span>
-                  <span>Consultar pagos</span>
-                </NavLink>
-              </li>
-            </ul>
-          )}
-        </li>        
+              </ul>
+            )}
+          </li>
+        )}        
         <li>
           <button
             type="button"
