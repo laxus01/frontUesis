@@ -52,7 +52,7 @@ export const useUsers = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await http.patch<SystemUser>(`/users/${id}`, payload);
+      const response = await http.put<SystemUser>(`/users/${id}`, payload);
       // Recargar la lista completa para obtener todos los datos actualizados del servidor
       await fetchUsers();
       return { success: true, data: response.data };
