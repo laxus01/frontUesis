@@ -250,7 +250,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                     className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
                   >
                     <span className="material-symbols-outlined text-base">badge</span>
-                    <span>Certificado Laboral</span>
+                    <span>Referencia Laboral</span>
                   </NavLink>
                 </li>
               </ul>
