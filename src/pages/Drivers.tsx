@@ -78,6 +78,8 @@ export default function Drivers() {
   const handleModalClose = () => {
     setModalOpen(false);
     setSelectedDriver(null);
+    // Clear cached image errors so updated photos are retried
+    setImageErrors(new Set());
     fetchDrivers();
   };
 
@@ -286,7 +288,11 @@ export default function Drivers() {
         open={modalOpen}
         onClose={handleModalClose}
         editDriver={selectedDriver}
-        onSuccess={fetchDrivers}
+        onSuccess={() => {
+          // After a successful create/update, refresh list and reset image error cache
+          setImageErrors(new Set());
+          fetchDrivers();
+        }}
       />
 
       <Dialog

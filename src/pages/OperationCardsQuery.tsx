@@ -599,7 +599,6 @@ const OperationCardsQuery: React.FC = () => {
                       value={expirationDate}
                       onChange={(v) => setExpirationDate(v)}
                       format="YYYY-MM-DD"
-                      minDate={dayjs()}
                       slotProps={{ 
                         textField: { 
                           size: 'small', 

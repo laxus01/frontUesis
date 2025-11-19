@@ -236,6 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                 <li>
                   <NavLink
                     to="/documents"
+                    end
                     onClick={onItemClick}
                     className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
                   >

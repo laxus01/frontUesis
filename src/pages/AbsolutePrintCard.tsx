@@ -110,6 +110,8 @@ export default function AbsolutePrintCard(): JSX.Element {
 
   const [loading, setLoading] = useState(false);
   const [item, setItem] = useState<DriverVehicleRes | null>(null);
+  const [photoReady, setPhotoReady] = useState(false);
+  const [hasPrinted, setHasPrinted] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -132,15 +134,21 @@ export default function AbsolutePrintCard(): JSX.Element {
 
   const printableItem = useMemo(() => item, [item]);
 
-  // Auto print when data is ready in a popup window
+  // Auto print when data (and photo, if any) is ready in a popup window
   useEffect(() => {
-    if (!loading && printableItem) {
+    const hasPhoto = !!printableItem?.driver?.photo;
+    const canPrint = !loading && printableItem && (!hasPhoto || photoReady) && !hasPrinted;
+
+    if (canPrint) {
       const t = setTimeout(() => {
-        try { window.print(); } catch {}
+        try {
+          window.print();
+          setHasPrinted(true);
+        } catch {}
       }, 100);
       return () => clearTimeout(t);
     }
-  }, [loading, printableItem]);
+  }, [loading, printableItem, photoReady, hasPrinted]);
 
   return (
     <div>
@@ -220,7 +228,13 @@ export default function AbsolutePrintCard(): JSX.Element {
               {/* Foto del conductor */}
               <div id="photo" className="field">
                 {driver.photo ? (
-                  <img src={driver.photo} alt="Foto" style={{ width: '115px', height: '150px', objectFit: 'cover' }} />
+                  <img
+                    src={driver.photo}
+                    alt="Foto"
+                    style={{ width: '115px', height: '150px', objectFit: 'cover' }}
+                    onLoad={() => setPhotoReady(true)}
+                    onError={() => setPhotoReady(true)}
+                  />
                 ) : (
                   <span style={{ color: '#999' }}>FOTO</span>
                 )}

@@ -14,8 +14,8 @@ import AbsolutePrintCard from './pages/AbsolutePrintCard';
 import AbsoluteAdministrationPaymentPrint from './pages/AbsoluteAdministrationPaymentPrint';
 import Administration from './pages/Administration';
 import AdministrationPayments from './pages/AdministrationPayments';
-import IncomeCertificates from './pages/IncomeCertificates';
 import WorkCertificate from './pages/WorkCertificate';
+import OwnerIncomeCertificate from './pages/OwnerIncomeCertificate';
 import Owners from './pages/Owners';
 import OperationCardsQuery from './pages/OperationCardsQuery';
 import Users from './pages/Users';
@@ -219,7 +219,7 @@ function App(): JSX.Element {
                 {/* Rutas de documentos - Solo SUPER, ADMIN y OPERATOR */}
                 <Route path="/documents" element={
                   <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
-                    <IncomeCertificates />
+                    <OwnerIncomeCertificate />
                   </ProtectedRoute>
                 } />
                 <Route path="/documents/work-certificate" element={

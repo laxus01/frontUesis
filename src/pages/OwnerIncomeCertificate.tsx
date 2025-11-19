@@ -20,6 +20,7 @@ import { OwnerLite } from '../hooks/useOwners';
 
 
 interface VehicleLite { id: number; plate: string; owner?: { id: number; identification: string; name: string; } }
+interface OwnerWithVehicles extends OwnerLite { vehicles?: VehicleLite[] }
 
 interface OwnerIncomeCertificateProps {
   hideTitle?: boolean;
@@ -33,20 +34,17 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
   
   // Owner search state (separated by identification and name)
   const [ownerIdQuery, setOwnerIdQuery] = useState('');
-  const [ownerIdOptions, setOwnerIdOptions] = useState<OwnerLite[]>([]);
+  const [ownerIdOptions, setOwnerIdOptions] = useState<OwnerWithVehicles[]>([]);
   const [ownerIdLoading, setOwnerIdLoading] = useState(false);
   const [ownerNameQuery, setOwnerNameQuery] = useState('');
-  const [ownerNameOptions, setOwnerNameOptions] = useState<OwnerLite[]>([]);
+  const [ownerNameOptions, setOwnerNameOptions] = useState<OwnerWithVehicles[]>([]);
   const [ownerNameLoading, setOwnerNameLoading] = useState(false);
-  const [selectedOwner, setSelectedOwner] = useState<OwnerLite | null>(null);
+  const [selectedOwner, setSelectedOwner] = useState<OwnerWithVehicles | null>(null);
   
-  // Vehicle search state
-  const [plateQuery, setPlateQuery] = useState<string>('');
-  const [plateOptions, setPlateOptions] = useState<string[]>([]);
-  const [plateResults, setPlateResults] = useState<VehicleLite[]>([]);
-  const [plateLoading, setPlateLoading] = useState<boolean>(false);
+  // Vehicle selection state (from owner's vehicles list)
+  const [ownerVehicles, setOwnerVehicles] = useState<VehicleLite[]>([]);
   const [plate, setPlate] = useState<string>('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<number[]>([]);
   
   const disabledAll = submitting;
 
@@ -61,10 +59,8 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
 
   const resetVehicleSearch = () => {
     setPlate('');
-    setPlateQuery('');
-    setSelectedVehicleId(null);
-    setPlateOptions([]);
-    setPlateResults([]);
+    setSelectedVehicleIds([]);
+    setOwnerVehicles([]);
   };
 
   const resetAll = () => {
@@ -73,61 +69,22 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
     setAmount('');
   };
 
-  const populateVehicleForm = (vehicle: VehicleLite) => {
-    if (!vehicle) return;
-    setPlate(String(vehicle.plate || ''));
-    setSelectedVehicleId(vehicle.id);
-    setPlateQuery(String(vehicle.plate || ''));
-    // Auto-populate owner info from vehicle
-    if (vehicle.owner) {
-      setOwnerId(vehicle.owner.id);
-      setOwnerIdQuery(formatNumber(String(vehicle.owner.identification || '')));
-      setOwnerNameQuery(String(vehicle.owner.name || ''));
-      setSelectedOwner({
-        id: vehicle.owner.id,
-        identification: vehicle.owner.identification,
-        name: vehicle.owner.name
-      } as OwnerLite);
-    }
-  };
-
-  const handlePlateChange = (_event: any, newValue: string | null) => {
-    const val = (newValue || '').toUpperCase();
-    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === val.trim());
-    if (found) {
-      populateVehicleForm(found);
-    } else {
-      setPlate(val);
-      setSelectedVehicleId(null);
-    }
-  };
-
-  const handlePlateInputChange = (_event: any, newInputValue: string, reason: string) => {
-    const next = (newInputValue || '').toUpperCase();
-    setPlateQuery(next);
-    if (reason === 'input') {
-      setPlate(next);
-      setSelectedVehicleId(null);
-    }
-  };
-
-  const handlePlateBlur = () => {
-    const found = plateResults.find(v => String(v.plate).trim().toUpperCase() === plateQuery.trim());
-    if (found) {
-      populateVehicleForm(found);
-    }
-  };
-
-  const handleOwnerSelection = (owner: OwnerLite | null) => {
+  const handleOwnerSelection = (owner: OwnerWithVehicles | null) => {
     setSelectedOwner(owner);
     if (owner) {
       setOwnerId(owner.id);
       setOwnerIdQuery(formatNumber(owner.identification));
       setOwnerNameQuery(owner.name || '');
+      setOwnerVehicles(owner.vehicles || []);
+      setSelectedVehicleIds([]);
+      setPlate('');
     } else {
       setOwnerId(0);
       setOwnerIdQuery('');
       setOwnerNameQuery('');
+      setOwnerVehicles([]);
+      setSelectedVehicleIds([]);
+      setPlate('');
     }
   };
 
@@ -141,7 +98,7 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
     const handle = setTimeout(async () => {
       setOwnerIdLoading(true);
       try {
-        const res = await api.get<OwnerLite[]>('/owner', { params: { identification: q } });
+        const res = await api.get<OwnerWithVehicles[]>('/owner', { params: { identification: q } });
         const data = Array.isArray(res.data) ? res.data : [];
         setOwnerIdOptions(data);
       } catch {
@@ -163,7 +120,7 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
     const handle = setTimeout(async () => {
       setOwnerNameLoading(true);
       try {
-        const res = await api.get<OwnerLite[]>('/owner', { params: { name: q } });
+        const res = await api.get<OwnerWithVehicles[]>('/owner', { params: { name: q } });
         const data = Array.isArray(res.data) ? res.data : [];
         setOwnerNameOptions(data);
       } catch {
@@ -175,27 +132,7 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
     return () => clearTimeout(handle);
   }, [ownerNameQuery]);
 
-  // Search vehicles by plate
-  useEffect(() => {
-    const q = (plateQuery || '').trim();
-    if (!q) { setPlateOptions([]); setPlateResults([]); return; }
-    const handle = setTimeout(async () => {
-      setPlateLoading(true);
-      try {
-        const res = await api.get<VehicleLite[]>('/vehicles', { params: { plate: q } });
-        const data = Array.isArray(res.data) ? res.data : [];
-        setPlateResults(data);
-        const plates = Array.from(new Set(data.map(v => String((v as any).plate || '').trim().toUpperCase()).filter(Boolean)));
-        setPlateOptions(plates);
-      } catch (e) {
-        setPlateOptions([]);
-        setPlateResults([]);
-      } finally {
-        setPlateLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [plateQuery]);
+  // Vehicle options now come from the selected owner's vehicles list (no extra API call)
 
 
 
@@ -208,14 +145,17 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
     return `${toTitleCase(words)} Pesos MCTE.`;
   }, [amountNumber]);
 
-  const canSubmit = useMemo(() => ownerId > 0 && amountNumber > 0 && selectedVehicleId !== null && selectedVehicleId > 0, [ownerId, amountNumber, selectedVehicleId]);
+  const canSubmit = useMemo(
+    () => ownerId > 0 && amountNumber > 0 && selectedVehicleIds.length > 0,
+    [ownerId, amountNumber, selectedVehicleIds],
+  );
 
   const onGenerate = async () => {
-    if (!canSubmit || !selectedVehicleId) return;
+    if (!canSubmit || !selectedVehicleIds.length) return;
     setSubmitting(true);
     try {
-      const payload: any = { amountNumber, amountWords };
-      const res = await api.post(`/documents/owner-certificate/${ownerId}/${selectedVehicleId}`, payload, { responseType: 'blob' as any });
+      const payload: any = { amountNumber, amountWords, vehicleIds: selectedVehicleIds };
+      const res = await api.post(`/documents/owner-certificate/${ownerId}`, payload, { responseType: 'blob' as any });
       const dispo = (res as any)?.headers?.['content-disposition'] || (res as any)?.headers?.['Content-Disposition'];
       let filename = 'certificado_propietario.pdf';
       if (typeof dispo === 'string') {
@@ -248,7 +188,7 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
             <DescriptionIcon color="primary" sx={{ fontSize: 28 }} />
             <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
-              Certificación de Ingresos - Propietario
+              Certificación de Ingresos
             </Typography>
           </Box>
           <Box sx={{ height: 3, width: 280, bgcolor: 'primary.main', borderRadius: 1, mb: 2 }} />
@@ -265,14 +205,20 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box sx={{ flex: 1 }}>
                 <Autocomplete
-                  options={plateOptions}
-                  value={plate || null}
-                  onChange={handlePlateChange}
-                  inputValue={plateQuery}
-                  onInputChange={handlePlateInputChange}
-                  onBlur={handlePlateBlur}
-                  loading={plateLoading}
-                  disabled={disabledAll}
+                  multiple
+                  options={ownerVehicles}
+                  getOptionLabel={(option) => option.plate || ''}
+                  value={ownerVehicles.filter(v => selectedVehicleIds.includes(v.id))}
+                  onChange={(_event, newValue) => {
+                    const ids = (newValue || []).map(v => v.id);
+                    setSelectedVehicleIds(ids);
+                    if (newValue && newValue.length > 0) {
+                      setPlate(newValue[0].plate || '');
+                    } else {
+                      setPlate('');
+                    }
+                  }}
+                  disabled={disabledAll || !selectedOwner}
                   disablePortal
                   filterOptions={(x) => x}
                   renderInput={(params) => (
@@ -281,15 +227,6 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
                       label="Placa"
                       size="small"
                       fullWidth
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {plateLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
                       required
                     />
                   )}
