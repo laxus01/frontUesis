@@ -409,7 +409,7 @@ const OperationCardsQuery: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
         <CreditCardIcon color="primary" sx={{ fontSize: 28 }} />
         <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
-          Consultar Tarjetas
+          Consultar Documentos
         </Typography>
       </Box>
       <Box sx={{ height: 3, width: 280, bgcolor: 'primary.main', borderRadius: 1, mb: 2 }} />

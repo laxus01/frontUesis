@@ -208,7 +208,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                   className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
                 >
                   <span className="material-symbols-outlined text-base">credit_card</span>
-                  <span>Consultar Tarjetas</span>
+                  <span>Consultar Documentos</span>
                 </NavLink>
               </li>
             </ul>

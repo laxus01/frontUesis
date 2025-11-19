@@ -247,8 +247,8 @@ export default function AbsolutePrintCard(): JSX.Element {
               <div id="soatExpires" className="field">{fmt(printableItem.soatExpires) || '\u2014'}</div>
               <div id="operationCard" className="field">{printableItem.operationCard || '\u2014'}</div>
               <div id="operationCardExpires" className="field">{fmt(printableItem.operationCardExpires) || '\u2014'}</div>
-              <div id="contractualExpires" className="field">{vehicle.police?.contractualExpires ? `${fmt(vehicle.police.contractualExpires)} ${vehicle.police.contractual || ''}` : '\u2014'}</div>
-              <div id="extraContractualExpires" className="field">{vehicle.police?.extraContractualExpires ? `${fmt(vehicle.police.extraContractualExpires)} ${vehicle.police.extraContractual || ''}` : '\u2014'}</div>
+              <div id="contractualExpires" className="field">{fmt(vehicle.police?.contractualExpires) || '\u2014'}</div>
+              <div id="extraContractualExpires" className="field">{fmt(vehicle.police?.extraContractualExpires) || '\u2014'}</div>
               <div id="technicalMechanicExpires" className="field">{fmt(printableItem.technicalMechanicExpires) || '\u2014'}</div>
 
               {/* Especificaciones vehículo */}

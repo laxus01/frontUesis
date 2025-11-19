@@ -150,6 +150,13 @@ const Users: React.FC = () => {
     setOpenDialog(false);
     setEditingUser(null);
     setShowPassword(false);
+    setFormData({
+      user: '',
+      password: '',
+      name: '',
+      permissions: 'VIEWER',
+      companyId: currentUser?.company?.id ? parseInt(currentUser.company.id) : 1
+    });
   };
 
   const handleSubmit = async () => {
@@ -252,6 +259,7 @@ const Users: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, user: e.target.value })}
               fullWidth
               required
+              autoComplete="off"
             />
 
             <TextField
@@ -270,6 +278,7 @@ const Users: React.FC = () => {
               fullWidth
               required={!editingUser}
               helperText={editingUser ? "Dejar en blanco para mantener la contraseña actual" : ""}
+              autoComplete="new-password"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
