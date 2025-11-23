@@ -26,7 +26,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function Vehicles(): JSX.Element {
   const { vehicles, loading, deleteVehicle, fetchVehicles, toggleVehicleState } = useVehiclesList();
-  const { canManageData } = useAuth();
+  const { canManageData, isAdmin } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -104,35 +104,49 @@ export default function Vehicles(): JSX.Element {
     }
   ];
 
-  // Solo mostrar acciones si el usuario puede gestionar datos (ADMIN o OPERATOR)
-  const actions: TableAction<Vehicle>[] = canManageData() ? [
-    {
-      label: 'Editar',
-      icon: <EditIcon />,
-      onClick: (vehicle) => {
-        setSelectedVehicle(vehicle);
-        setModalOpen(true);
-      }
-    },
-    {
-      label: (vehicle: Vehicle) => vehicle.state === 1 ? 'Desactivar' : 'Activar',
-      icon: (vehicle: Vehicle) => vehicle.state === 1 ? <ToggleOffIcon /> : <ToggleOnIcon />,
-      onClick: (vehicle: Vehicle) => {
-        setVehicleToToggle(vehicle);
-        setStateToggleDialogOpen(true);
-      },
-      color: (vehicle: Vehicle) => vehicle.state === 1 ? 'warning' : 'success'
-    },
-    {
-      label: 'Eliminar',
-      icon: <DeleteIcon />,
-      onClick: (vehicle: Vehicle) => {
-        setVehicleToDelete(vehicle);
-        setDeleteDialogOpen(true);
-      },
-      color: 'error'
-    }
-  ] : [];
+  // Solo mostrar acciones si el usuario puede gestionar datos.
+  // Desactivar/Activar y Eliminar solo se muestran para usuarios ADMIN (o SUPER según useAuth).
+  const actions: TableAction<Vehicle>[] = canManageData()
+    ? isAdmin()
+      ? [
+          {
+            label: 'Editar',
+            icon: <EditIcon />,
+            onClick: (vehicle) => {
+              setSelectedVehicle(vehicle);
+              setModalOpen(true);
+            },
+          },
+          {
+            label: (vehicle: Vehicle) => (vehicle.state === 1 ? 'Desactivar' : 'Activar'),
+            icon: (vehicle: Vehicle) => (vehicle.state === 1 ? <ToggleOffIcon /> : <ToggleOnIcon />),
+            onClick: (vehicle: Vehicle) => {
+              setVehicleToToggle(vehicle);
+              setStateToggleDialogOpen(true);
+            },
+            color: (vehicle: Vehicle) => (vehicle.state === 1 ? 'warning' : 'success'),
+          },
+          {
+            label: 'Eliminar',
+            icon: <DeleteIcon />,
+            onClick: (vehicle: Vehicle) => {
+              setVehicleToDelete(vehicle);
+              setDeleteDialogOpen(true);
+            },
+            color: 'error',
+          },
+        ]
+      : [
+          {
+            label: 'Editar',
+            icon: <EditIcon />,
+            onClick: (vehicle) => {
+              setSelectedVehicle(vehicle);
+              setModalOpen(true);
+            },
+          },
+        ]
+    : [];
 
   const handleModalClose = () => {
     setModalOpen(false);

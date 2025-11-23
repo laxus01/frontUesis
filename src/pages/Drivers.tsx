@@ -30,7 +30,7 @@ import type { TableColumn, TableAction } from '../components/common/DataTable';
 
 export default function Drivers() {
   const { drivers, loading, fetchDrivers, deleteDriver, toggleDriverState } = useDriversList();
-  const { canManageData } = useAuth();
+  const { canManageData, isAdmin } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -218,30 +218,42 @@ export default function Drivers() {
     },
   ];
 
-  // Solo mostrar acciones si el usuario puede gestionar datos (ADMIN o OPERATOR)
-  const actions: TableAction<Driver>[] = canManageData() ? [
-    {
-      label: 'Editar',
-      icon: <Edit />,
-      onClick: handleEdit,
-      color: 'primary',
-    },
-    {
-      label: driver => driver.state === 1 ? 'Desactivar' : 'Activar',
-      icon: (driver) => driver.state === 1 ? <ToggleOffIcon /> : <ToggleOnIcon />,
-      onClick: (driver) => {
-        setDriverToToggle(driver);
-        setStateToggleDialogOpen(true);
-      },
-      color: (driver) => driver.state === 1 ? 'warning' : 'success'
-    },
-    {
-      label: 'Eliminar',
-      icon: <Delete />,
-      onClick: handleDelete,
-      color: 'error',
-    },
-  ] : [];
+  // Solo mostrar acciones si el usuario puede gestionar datos.
+  // Desactivar/Activar y Eliminar solo se muestran para usuarios ADMIN (o SUPER si se considera admin en useAuth).
+  const actions: TableAction<Driver>[] = canManageData()
+    ? isAdmin()
+      ? [
+          {
+            label: 'Editar',
+            icon: <Edit />,
+            onClick: handleEdit,
+            color: 'primary',
+          },
+          {
+            label: driver => (driver.state === 1 ? 'Desactivar' : 'Activar'),
+            icon: (driver) => (driver.state === 1 ? <ToggleOffIcon /> : <ToggleOnIcon />),
+            onClick: (driver) => {
+              setDriverToToggle(driver);
+              setStateToggleDialogOpen(true);
+            },
+            color: (driver) => (driver.state === 1 ? 'warning' : 'success'),
+          },
+          {
+            label: 'Eliminar',
+            icon: <Delete />,
+            onClick: handleDelete,
+            color: 'error',
+          },
+        ]
+      : [
+          {
+            label: 'Editar',
+            icon: <Edit />,
+            onClick: handleEdit,
+            color: 'primary',
+          },
+        ]
+    : [];
 
   return (
     <Box maxWidth={1200} mx="auto" p={2}>

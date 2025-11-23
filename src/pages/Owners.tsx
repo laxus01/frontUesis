@@ -23,7 +23,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function Owners(): JSX.Element {
   const { owners, loading, fetchOwners, deleteOwner } = useOwnersList();
-  const { canManageData } = useAuth();
+  const { canManageData, isAdmin } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
@@ -137,21 +137,33 @@ export default function Owners(): JSX.Element {
     },
   ];
 
-  // Define table actions - Solo para ADMIN y OPERATOR
-  const actions: TableAction<Owner>[] = canManageData() ? [
-    {
-      label: 'Editar',
-      icon: <EditIcon />,
-      onClick: handleEdit,
-      color: 'primary',
-    },
-    {
-      label: 'Eliminar',
-      icon: <DeleteIcon />,
-      onClick: handleDeleteClick,
-      color: 'error',
-    },
-  ] : [];
+  // Define table actions - Solo mostrar acciones si el usuario puede gestionar datos.
+  // La acción Eliminar solo se muestra para usuarios ADMIN (o SUPER según useAuth).
+  const actions: TableAction<Owner>[] = canManageData()
+    ? isAdmin()
+      ? [
+          {
+            label: 'Editar',
+            icon: <EditIcon />,
+            onClick: handleEdit,
+            color: 'primary',
+          },
+          {
+            label: 'Eliminar',
+            icon: <DeleteIcon />,
+            onClick: handleDeleteClick,
+            color: 'error',
+          },
+        ]
+      : [
+          {
+            label: 'Editar',
+            icon: <EditIcon />,
+            onClick: handleEdit,
+            color: 'primary',
+          },
+        ]
+    : [];
 
   return (
     <Box maxWidth={1200} mx="auto" p={2}>
