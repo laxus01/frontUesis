@@ -468,7 +468,10 @@ export default function ControlCard(): JSX.Element {
 
   // Calculate maximum allowed date for permitExpiresOn based on the earliest expiration date from other documents
   const maxPermitDate = useMemo(() => {
+    const defaultMaxDate = dayjs().add(30, 'day'); // Default: today + 30 days
+
     const expirationDates = [
+      expiresOn, // Driver's license expiration
       soatExpires,
       operationCardExpires,
       contractualExpires,
@@ -477,15 +480,22 @@ export default function ControlCard(): JSX.Element {
     ].filter(date => date !== null) as Dayjs[];
 
     if (expirationDates.length === 0) {
-      // If no expiration dates are set, allow up to 1 year from now
-      return dayjs().add(1, 'year');
+      // If no expiration dates are set, use default (today + 30 days)
+      return defaultMaxDate;
     }
 
-    // Return the earliest expiration date as the maximum allowed
-    return expirationDates.reduce((earliest, current) =>
+    // Get the earliest expiration date from all documents
+    const earliestDocExpiration = expirationDates.reduce((earliest, current) =>
       current.isBefore(earliest) ? current : earliest
     );
-  }, [soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
+
+    // Return the earlier of: (today + 30 days) or (earliest document expiration)
+    // But never allow a date before today
+    const calculatedMax = earliestDocExpiration.isBefore(defaultMaxDate) ? earliestDocExpiration : defaultMaxDate;
+    const today = dayjs();
+
+    return calculatedMax.isBefore(today) ? today : calculatedMax;
+  }, [expiresOn, soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
 
   // Validate that all required fields in Control Sheet are filled
   const isControlSheetValid = useMemo(() => {
@@ -507,6 +517,7 @@ export default function ControlCard(): JSX.Element {
       setPermitExpiresOn(maxPermitDate);
     }
   }, [maxPermitDate, permitExpiresOn]);
+
 
   const saveControlSheet = async () => {
     if (!selectedDriverId || !selectedVehicleId) {
@@ -950,12 +961,12 @@ export default function ControlCard(): JSX.Element {
                       </Select>
                     </FormControl>
                   ) : selectedVehicleId > 0 && (
-                    <Alert 
-                      severity="error" 
+                    <Alert
+                      severity="error"
                       sx={{ mt: 1 }}
                       action={
-                        <Button 
-                          color="inherit" 
+                        <Button
+                          color="inherit"
                           size="small"
                           onClick={handleAssignPolicyClick}
                           disabled={assigningPolicy}
@@ -1126,9 +1137,9 @@ export default function ControlCard(): JSX.Element {
           <Button onClick={handleAssignPolicyCancel} color="inherit">
             Cancelar
           </Button>
-          <Button 
-            onClick={handleAssignPolicyConfirm} 
-            variant="contained" 
+          <Button
+            onClick={handleAssignPolicyConfirm}
+            variant="contained"
             color="primary"
             disabled={assigningPolicy}
           >

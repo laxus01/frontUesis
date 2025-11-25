@@ -3,7 +3,6 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import { NavLink } from 'react-router-dom';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import AssessmentIcon from '@mui/icons-material/Assessment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import PlagiarismOutlinedIcon from '@mui/icons-material/PlagiarismOutlined';
@@ -60,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <span>Propietarios</span>
           </NavLink>
         </li>
-        
+
         {/* Vehículos - Todos los usuarios autenticados */}
         <li>
           <NavLink
@@ -72,7 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <span>Vehículos</span>
           </NavLink>
         </li>
-        
+
         {/* Conductores - Todos los usuarios autenticados */}
         <li>
           <NavLink
@@ -84,7 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <span>Conductores</span>
           </NavLink>
         </li>
-        
+
         {/* Accidentalidad - Todos los usuarios autenticados */}
         <li>
           <NavLink
@@ -96,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <span>Accidentalidad</span>
           </NavLink>
         </li>
-        
+
         {/* Tarjeta de control - Solo ADMIN y OPERATOR */}
         {canManageData() && (
           <li>
@@ -184,7 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               </ul>
             )}
           </li>
-        )}        
+        )}
         <li>
           <button
             type="button"
@@ -214,7 +213,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             </ul>
           )}
         </li>
-        
+
         {/* Documentos - Solo ADMIN y OPERATOR */}
         {canManageData() && (
           <li>
@@ -235,6 +234,27 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               <ul id="submenu-documents" className="mt-1 ml-6 space-y-1">
                 <li>
                   <NavLink
+                    to="/documents/work-certificate"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">badge</span>
+                    <span>Referencia Laboral</span>
+                  </NavLink>
+                </li>
+                {/* <li>
+                  <NavLink
+                    to="/operation-card"
+                    end
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">credit_card</span>
+                    <span>Tarjeta de operación</span>
+                  </NavLink>
+                </li> */}
+                <li>
+                  <NavLink
                     to="/documents"
                     end
                     onClick={onItemClick}
@@ -244,21 +264,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                     <span>Certificación de Ingresos</span>
                   </NavLink>
                 </li>
-                <li>
-                  <NavLink
-                    to="/documents/work-certificate"
-                    onClick={onItemClick}
-                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-                  >
-                    <span className="material-symbols-outlined text-base">badge</span>
-                    <span>Referencia Laboral</span>
-                  </NavLink>
-                </li>
               </ul>
             )}
           </li>
         )}
-        
+
         {/* Polizas - Solo ADMIN */}
         {isAdmin() && (
           <li>
@@ -272,7 +282,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             </NavLink>
           </li>
         )}
-             
+
         {/* Usuarios - Solo ADMIN */}
         {isAdmin() && (
           <li>

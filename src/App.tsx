@@ -16,6 +16,7 @@ import Administration from './pages/Administration';
 import AdministrationPayments from './pages/AdministrationPayments';
 import WorkCertificate from './pages/WorkCertificate';
 import OwnerIncomeCertificate from './pages/OwnerIncomeCertificate';
+import OperationCard from './pages/OperationCard';
 import Owners from './pages/Owners';
 import OperationCardsQuery from './pages/OperationCardsQuery';
 import Users from './pages/Users';
@@ -49,7 +50,7 @@ function App(): JSX.Element {
 
     // Escuchar cambios en localStorage (para login/logout)
     window.addEventListener('storage', loadUser);
-    
+
     // Custom event para cambios en la misma pestaña
     const handleAuthChange = () => loadUser();
     window.addEventListener('authChange', handleAuthChange);
@@ -89,158 +90,163 @@ function App(): JSX.Element {
 
   return (
     <SnackbarProvider>
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-blue-600 text-white relative z-[60]">
-        <nav className="flex h-12 w-full items-center justify-between px-2">
-          <div className="flex items-center gap-2">
-            {currentUser && (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-blue-600 text-white relative z-[60]">
+          <nav className="flex h-12 w-full items-center justify-between px-2">
+            <div className="flex items-center gap-2">
+              {currentUser && (
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-md p-1 hover:bg-white/10 md:hidden"
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Abrir menú"
+                  title="Abrir menú"
+                >
+                  <span className="material-symbols-outlined" aria-hidden>
+                    menu
+                  </span>
+                </button>
+              )}
+              <a href="/" className="font-semibold tracking-wide">
+                UESIS
+              </a>
+            </div>
+            {currentUser ? (
               <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-md p-1 hover:bg-white/10 md:hidden"
-                onClick={() => setSidebarOpen(true)}
-                aria-label="Abrir menú"
-                title="Abrir menú"
+                onClick={logOut}
+                aria-label="Cerrar sesión"
+                title="Cerrar sesión"
+                className="inline-flex items-center hover:text-white/80"
               >
-                <span className="material-symbols-outlined" aria-hidden>
-                  menu
-                </span>
+                <PowerSettingsNewIcon fontSize="small" />
               </button>
+            ) : (
+              <a href="/login" className="hover:text-white/80">
+                Login
+              </a>
             )}
-            <a href="/" className="font-semibold tracking-wide">
-              UESIS
-            </a>
-          </div>
+          </nav>
+        </header>
+
+        <main className="w-full p-0">
           {currentUser ? (
-            <button
-              onClick={logOut}
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
-              className="inline-flex items-center hover:text-white/80"
-            >
-              <PowerSettingsNewIcon fontSize="small" />
-            </button>
+            <div className="flex w-full min-h-[calc(100vh-3rem)]">{/* 3rem = h-12 del header */}
+              {/* Mobile overlay */}
+              {sidebarOpen && (
+                <div
+                  className="fixed inset-0 z-40 bg-black/40 md:hidden"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-hidden
+                />
+              )}
+
+              {/* Sidebar */}
+              <aside
+                className={
+                  `fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow transition-transform duration-200 ease-in-out md:static md:z-auto md:block md:translate-x-0 md:shadow-none md:sticky md:top-12 md:h-[calc(100vh-3rem)] ` +
+                  (sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0')
+                }
+              >
+                <Sidebar onItemClick={() => setSidebarOpen(false)} />
+              </aside>
+
+              {/* Content area */}
+              <section className="flex-1 overflow-auto p-3 sm:p-4">
+                <Routes>
+                  {/* Rutas públicas */}
+                  <Route path="/" element={<Home />} />
+
+                  {/* Rutas protegidas - SUPER, ADMIN y OPERATOR pueden gestionar, VIEWER solo ver */}
+                  <Route path="/vehicles" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
+                      <Vehicles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/drivers" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
+                      <Drivers />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/owners" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
+                      <Owners />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/policies" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
+                      <Policies />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/accidents" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
+                      <Accidents />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/control-sheet" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
+                      <ControlCard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/print-control-card" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
+                      <PrintControlCard />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Rutas protegidas - Solo SUPER y ADMIN */}
+                  <Route path="/administration" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
+                      <Administration />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/users" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
+                      <Users />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Rutas de reportes - Todos los usuarios autenticados */}
+                  <Route path="/reports/administration-payments" element={
+                    <ProtectedRoute>
+                      <AdministrationPayments />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/reports/operation-cards" element={
+                    <ProtectedRoute>
+                      <OperationCardsQuery />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Rutas de documentos - Solo SUPER, ADMIN y OPERATOR */}
+                  <Route path="/documents" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
+                      <OwnerIncomeCertificate />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/documents/work-certificate" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
+                      <WorkCertificate />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/operation-card" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
+                      <OperationCard />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Rutas de impresión sin protección */}
+                  <Route path="/absolute-print" element={<AbsolutePrintCard />} />
+                  <Route path="/absolute-print-administration" element={<AbsoluteAdministrationPaymentPrint />} />
+
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </section>
+            </div>
           ) : (
-            <a href="/login" className="hover:text-white/80">
-              Login
-            </a>
+            <Login />
           )}
-        </nav>
-      </header>
-
-      <main className="w-full p-0">
-        {currentUser ? (
-          <div className="flex w-full min-h-[calc(100vh-3rem)]">{/* 3rem = h-12 del header */}
-            {/* Mobile overlay */}
-            {sidebarOpen && (
-              <div
-                className="fixed inset-0 z-40 bg-black/40 md:hidden"
-                onClick={() => setSidebarOpen(false)}
-                aria-hidden
-              />
-            )}
-
-            {/* Sidebar */}
-            <aside
-              className={
-                `fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow transition-transform duration-200 ease-in-out md:static md:z-auto md:block md:translate-x-0 md:shadow-none md:sticky md:top-12 md:h-[calc(100vh-3rem)] ` +
-                (sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0')
-              }
-            >
-              <Sidebar onItemClick={() => setSidebarOpen(false)} />
-            </aside>
-
-            {/* Content area */}
-            <section className="flex-1 overflow-auto p-3 sm:p-4">
-              <Routes>
-                {/* Rutas públicas */}
-                <Route path="/" element={<Home />} />
-                
-                {/* Rutas protegidas - SUPER, ADMIN y OPERATOR pueden gestionar, VIEWER solo ver */}
-                <Route path="/vehicles" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
-                    <Vehicles />
-                  </ProtectedRoute>
-                } />
-                <Route path="/drivers" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
-                    <Drivers />
-                  </ProtectedRoute>
-                } />
-                <Route path="/owners" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
-                    <Owners />
-                  </ProtectedRoute>
-                } />
-                <Route path="/policies" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
-                    <Policies />
-                  </ProtectedRoute>
-                } />
-                <Route path="/accidents" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR', 'VIEWER']}>
-                    <Accidents />
-                  </ProtectedRoute>
-                } />
-                <Route path="/control-sheet" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
-                    <ControlCard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/print-control-card" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
-                    <PrintControlCard />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Rutas protegidas - Solo SUPER y ADMIN */}
-                <Route path="/administration" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
-                    <Administration />
-                  </ProtectedRoute>
-                } />
-                <Route path="/users" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN']}>
-                    <Users />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Rutas de reportes - Todos los usuarios autenticados */}
-                <Route path="/reports/administration-payments" element={
-                  <ProtectedRoute>
-                    <AdministrationPayments />
-                  </ProtectedRoute>
-                } />
-                <Route path="/reports/operation-cards" element={
-                  <ProtectedRoute>
-                    <OperationCardsQuery />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Rutas de documentos - Solo SUPER, ADMIN y OPERATOR */}
-                <Route path="/documents" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
-                    <OwnerIncomeCertificate />
-                  </ProtectedRoute>
-                } />
-                <Route path="/documents/work-certificate" element={
-                  <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
-                    <WorkCertificate />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Rutas de impresión sin protección */}
-                <Route path="/absolute-print" element={<AbsolutePrintCard />} />
-                <Route path="/absolute-print-administration" element={<AbsoluteAdministrationPaymentPrint />} />
-                
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </section>
-          </div>
-        ) : (
-          <Login />
-        )}
-      </main>
-    </div>
+        </main>
+      </div>
     </SnackbarProvider>
   );
 }

@@ -74,6 +74,8 @@ interface Company {
   id: number;
   name: string;
   nit: string;
+  phone: string;
+  address: string;
 }
 
 interface DriverVehicleRes {
@@ -144,7 +146,7 @@ export default function AbsolutePrintCard(): JSX.Element {
         try {
           window.print();
           setHasPrinted(true);
-        } catch {}
+        } catch { }
       }, 100);
       return () => clearTimeout(t);
     }
@@ -165,38 +167,40 @@ export default function AbsolutePrintCard(): JSX.Element {
           background: #fff;
         }
         .field { position: absolute; font-family: Arial, Helvetica, sans-serif; font-size: 12pt; }
-        #qr { top: 120px; right: 50px; font-size: 14pt; }
+        #qr { top: 110px; right: 60px; font-size: 14pt; }
         #photo { top: 130px; left: 40px; }
-        #name { top: 155px; left: 185px; font-size: 14pt; font-weight: 600; }
-        #identification { top: 200px; left: 185px; font-size: 14pt; }
-        #issuedIn { top: 200px; left: 420px; font-size: 14pt; }
-        #category { top: 250px; left: 185px; font-size: 14pt; }
-        #expiresOn { top: 250px; left: 320px; font-size: 14pt; }
-        #bloodType { top: 250px; left: 470px; font-size: 14pt; }
-        #eps { top: 250px; left: 620px; font-size: 14pt; }
-        #communicationCompany { top: 315px; left: 40px; font-size: 14pt; }
-        #plate { top: 420px; left: 45px; font-size: 20pt; }
-        #soat { top: 420px; left: 190px; font-size: 14pt; }
-        #soatExpires { top: 420px; left: 520px; font-size: 14pt; }
-        #operationCard { top: 470px; left: 190px; font-size: 14pt; }
-        #operationCardExpires { top: 470px; left: 520px; font-size: 14pt; }
-        #contractualExpires { top: 525px; left: 190px; font-size: 14pt; }
-        #extraContractualExpires { top: 525px; left: 380px; font-size: 14pt; }
-        #technicalMechanicExpires { top: 525px; left: 570px; font-size: 14pt; }
-        #model { top: 600px; left: 40px; font-size: 14pt; }
-        #make { top: 600px; left: 400px; font-size: 14pt; }
-        #insurer { top: 650px; left: 40px; font-size: 14pt; }
-        #licenseNumber { top: 650px; left: 400px; font-size: 14pt; }
-        #phone { top: 700px; left: 40px; font-size: 14pt; }
-        #ownerPhone { top: 700px; left: 400px; font-size: 14pt; }
-        #communicationCompany { top: 260px; left: 1050px; font-size: 14pt; }
-        #mobileNumber { top: 305px; left: 1050px; font-size: 14pt; }
-        #ownerAddress { top: 330px; left: 1050px; font-size: 14pt; }
-        #note { top: 490px; left: 900px; font-size: 12pt; }
-        #internalNumber { top: 65px; right: 70px; font-size: 16pt; }
-        #permitExpiresOn { top: 740px; left: 170px; font-size: 24pt; }
-        #company { top: 315px; left: 40px; font-size: 14pt; }
-        #nit_company { top: 315px; left: 480px; font-size: 14pt; }
+        #name { top: 150px; left: 195px; font-size: 14pt; font-weight: 600; }
+        #identification { top: 195px; left: 195px; font-size: 14pt; }
+        #issuedIn { top: 195px; left: 430px; font-size: 14pt; }
+        #category { top: 245px; left: 195px; font-size: 14pt; }
+        #expiresOn { top: 245px; left: 340px; font-size: 14pt; }
+        #bloodType { top: 245px; left: 490px; font-size: 14pt; }
+        #eps { top: 245px; left: 640px; font-size: 14pt; }
+        #communicationCompany { top: 310px; left: 50px; font-size: 14pt; }
+        #plate { top: 415px; left: 55px; font-size: 20pt; }
+        #soat { top: 415px; left: 210px; font-size: 14pt; }
+        #soatExpires { top: 415px; left: 540px; font-size: 14pt; }
+        #operationCard { top: 465px; left: 210px; font-size: 14pt; }
+        #operationCardExpires { top: 465px; left: 540px; font-size: 14pt; }
+        #contractualExpires { top: 520px; left: 210px; font-size: 14pt; }
+        #extraContractualExpires { top: 520px; left: 400px; font-size: 14pt; }
+        #technicalMechanicExpires { top: 520px; left: 580px; font-size: 14pt; }
+        #model { top: 595px; left: 55px; font-size: 14pt; }
+        #make { top: 595px; left: 410px; font-size: 14pt; }
+        #insurer { top: 645px; left: 55px; font-size: 14pt; }
+        #licenseNumber { top: 645px; left: 410px; font-size: 14pt; }
+        #phone { top: 695px; left: 55px; font-size: 14pt; }
+        #ownerPhone { top: 695px; left: 410px; font-size: 14pt; }
+        #communicationCompany { top: 255px; left: 1060px; font-size: 14pt; }
+        #mobileNumber { top: 300px; left: 1060px; font-size: 14pt; }
+        #ownerAddress { top: 325px; left: 1060px; font-size: 14pt; }
+        #note { top: 485px; left: 910px; font-size: 12pt; }
+        #internalNumber { top: 60px; right: 70px; font-size: 16pt; }
+        #permitExpiresOn { top: 735px; left: 180px; font-size: 24pt; }
+        #company { top: 310px; left: 55px; font-size: 14pt; }
+        #nit_company { top: 310px; left: 495px; font-size: 14pt; }
+        #phone_company { top: 355px; left: 495px; font-size: 14pt; }
+        #address_company { top: 355px; left: 55px; font-size: 14pt; }
       `}</style>
 
       {loading && (
@@ -220,67 +224,69 @@ export default function AbsolutePrintCard(): JSX.Element {
           return (
             <div style={{ marginBottom: '12mm' }}>
               <div>
-              {/* QR */}
-              <div id="qr" className="field">
-                <QRCode value={qrValue} size={96} />
-              </div>
+                {/* QR */}
+                <div id="qr" className="field">
+                  <QRCode value={qrValue} size={96} />
+                </div>
 
-              {/* Foto del conductor */}
-              <div id="photo" className="field">
-                {driver.photo ? (
-                  <img
-                    src={driver.photo}
-                    alt="Foto"
-                    style={{ width: '115px', height: '150px', objectFit: 'cover' }}
-                    onLoad={() => setPhotoReady(true)}
-                    onError={() => setPhotoReady(true)}
-                  />
-                ) : (
-                  <span style={{ color: '#999' }}>FOTO</span>
-                )}
-              </div>
+                {/* Foto del conductor */}
+                <div id="photo" className="field">
+                  {driver.photo ? (
+                    <img
+                      src={driver.photo}
+                      alt="Foto"
+                      style={{ width: '115px', height: '150px', objectFit: 'cover' }}
+                      onLoad={() => setPhotoReady(true)}
+                      onError={() => setPhotoReady(true)}
+                    />
+                  ) : (
+                    <span style={{ color: '#999' }}>FOTO</span>
+                  )}
+                </div>
 
-              {/* Nombre e identificación */}
-              <div id="name" className="field">{fullName || '\u2014'}</div>
-              <div id="identification" className="field">{driver.identification || '\u2014'}</div>
-              <div id="issuedIn" className="field">{driver.issuedIn || '\u2014'}</div>
+                {/* Nombre e identificación */}
+                <div id="name" className="field">{fullName || '\u2014'}</div>
+                <div id="identification" className="field">{driver.identification || '\u2014'}</div>
+                <div id="issuedIn" className="field">{driver.issuedIn || '\u2014'}</div>
 
-              {/* Licencia / salud */}
-              <div id="category" className="field">{driver.category || '\u2014'}</div>
-              <div id="expiresOn" className="field">{fmt(driver.expiresOn) || '\u2014'}</div>
-              <div id="bloodType" className="field">{driver.bloodType || '\u2014'}</div>
-              <div id="eps" className="field">{driver.eps?.name || '\u2014'}</div>
+                {/* Licencia / salud */}
+                <div id="category" className="field">{driver.category || '\u2014'}</div>
+                <div id="expiresOn" className="field">{fmt(driver.expiresOn) || '\u2014'}</div>
+                <div id="bloodType" className="field">{driver.bloodType || '\u2014'}</div>
+                <div id="eps" className="field">{driver.eps?.name || '\u2014'}</div>
 
-              {/* Empresa */}
-              <div id="company" className="field">{vehicle.company?.name || '\u2014'}</div>
-              <div id="nit_company" className="field">{vehicle.company?.nit || '\u2014'}</div>
-              
-              {/* Vehículo y pólizas */}
-              <div id="plate" className="field">{vehicle.plate || '\u2014'}</div>
-              <div id="soat" className="field">{printableItem.soat || '\u2014'}</div>
-              <div id="soatExpires" className="field">{fmt(printableItem.soatExpires) || '\u2014'}</div>
-              <div id="operationCard" className="field">{printableItem.operationCard || '\u2014'}</div>
-              <div id="operationCardExpires" className="field">{fmt(printableItem.operationCardExpires) || '\u2014'}</div>
-              <div id="contractualExpires" className="field">{fmt(vehicle.police?.contractualExpires) || '\u2014'}</div>
-              <div id="extraContractualExpires" className="field">{fmt(vehicle.police?.extraContractualExpires) || '\u2014'}</div>
-              <div id="technicalMechanicExpires" className="field">{fmt(printableItem.technicalMechanicExpires) || '\u2014'}</div>
+                {/* Empresa */}
+                <div id="company" className="field">{vehicle.company?.name || '\u2014'}</div>
+                <div id="nit_company" className="field">{vehicle.company?.nit || '\u2014'}</div>
+                <div id="phone_company" className="field">{vehicle.company?.phone || '\u2014'}</div>
+                <div id="address_company" className="field">{vehicle.company?.address || '\u2014'}</div>
 
-              {/* Especificaciones vehículo */}
-              <div id="model" className="field">{vehicle.model || '\u2014'}</div>
-              <div id="make" className="field">{vehicle.make?.name || '\u2014'}</div>
-              <div id="insurer" className="field">{vehicle.police?.insurer?.name || '\u2014'}</div>
-              <div id="licenseNumber" className="field">{driver.license || '\u2014'}</div>
-              <div id="phone" className="field">{driver.phone || '\u2014'}</div>
+                {/* Vehículo y pólizas */}
+                <div id="plate" className="field">{vehicle.plate || '\u2014'}</div>
+                <div id="soat" className="field">{printableItem.soat || '\u2014'}</div>
+                <div id="soatExpires" className="field">{fmt(printableItem.soatExpires) || '\u2014'}</div>
+                <div id="operationCard" className="field">{printableItem.operationCard || '\u2014'}</div>
+                <div id="operationCardExpires" className="field">{fmt(printableItem.operationCardExpires) || '\u2014'}</div>
+                <div id="contractualExpires" className="field">{fmt(vehicle.police?.contractualExpires) || '\u2014'}</div>
+                <div id="extraContractualExpires" className="field">{fmt(vehicle.police?.extraContractualExpires) || '\u2014'}</div>
+                <div id="technicalMechanicExpires" className="field">{fmt(printableItem.technicalMechanicExpires) || '\u2014'}</div>
 
-              {/* Radio / contactos adicionales 
+                {/* Especificaciones vehículo */}
+                <div id="model" className="field">{vehicle.model || '\u2014'}</div>
+                <div id="make" className="field">{vehicle.make?.name || '\u2014'}</div>
+                <div id="insurer" className="field">{vehicle.police?.insurer?.name || '\u2014'}</div>
+                <div id="licenseNumber" className="field">{driver.license || '\u2014'}</div>
+                <div id="phone" className="field">{driver.phone || '\u2014'}</div>
+
+                {/* Radio / contactos adicionales 
               <div id="communicationCompany" className="field">{v.communicationCompany?.name || '\u2014'}</div>
             */}
-            
-              {/* Nota y cabecera */}
-              <div id="internalNumber" className="field">{printableItem.vehicle?.internalNumber || '\u2014'}</div>
-              <div id="permitExpiresOn" className="field">{fmt(printableItem.permitExpiresOn) || '\u2014'}</div>
+
+                {/* Nota y cabecera */}
+                <div id="internalNumber" className="field">{printableItem.vehicle?.internalNumber || '\u2014'}</div>
+                <div id="permitExpiresOn" className="field">{fmt(printableItem.permitExpiresOn) || '\u2014'}</div>
+              </div>
             </div>
-          </div>
           );
         })()
       )}
