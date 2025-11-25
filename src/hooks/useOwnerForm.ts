@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
-import { OwnerLite } from './useOwnerSearch';
+import { OwnerLite } from '../owners/interfaces/owner.interface';
 
 export const useOwnerForm = (onOwnerCreated: (owner: OwnerLite) => void, closeModal: () => void) => {
   const { success, error } = useNotify();

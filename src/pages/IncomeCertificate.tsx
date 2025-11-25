@@ -16,7 +16,7 @@ import api from '../services/http';
 import { useNotify } from '../services/notify';
 import { formatMoneyInput, moneyToInteger, numberToSpanishWords, toTitleCase } from '../utils/format';
 import { formatNumber } from '../utils/formatting';
-import { OwnerLite } from '../hooks/useOwners';
+import { OwnerLite } from '../owners/interfaces/owner.interface';
 
 
 interface IncomeCertificateProps {
@@ -28,7 +28,7 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
   const [submitting, setSubmitting] = useState(false);
   const [ownerId, setOwnerId] = useState<number>(0);
   const [amount, setAmount] = useState<string>('');
-  
+
   // Owner search state (separated by identification and name)
   const [ownerIdQuery, setOwnerIdQuery] = useState('');
   const [ownerIdOptions, setOwnerIdOptions] = useState<OwnerLite[]>([]);
@@ -37,7 +37,7 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
   const [ownerNameOptions, setOwnerNameOptions] = useState<OwnerLite[]>([]);
   const [ownerNameLoading, setOwnerNameLoading] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<OwnerLite | null>(null);
-  
+
   const disabledAll = submitting;
 
   const resetOwnerSearch = () => {
@@ -170,7 +170,7 @@ export default function IncomeCertificate({ hideTitle = false }: IncomeCertifica
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
               Propietario
             </Typography>
-            
+
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box sx={{ flex: 1 }}>
                 <Autocomplete

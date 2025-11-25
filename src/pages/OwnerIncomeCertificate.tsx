@@ -16,7 +16,7 @@ import api from '../services/http';
 import { useNotify } from '../services/notify';
 import { formatMoneyInput, moneyToInteger, numberToSpanishWords, toTitleCase } from '../utils/format';
 import { formatNumber } from '../utils/formatting';
-import { OwnerLite } from '../hooks/useOwners';
+import { OwnerLite } from '../owners/interfaces/owner.interface';
 
 
 interface VehicleLite { id: number; plate: string; owner?: { id: number; identification: string; name: string; } }
@@ -31,7 +31,7 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
   const [submitting, setSubmitting] = useState(false);
   const [ownerId, setOwnerId] = useState<number>(0);
   const [amount, setAmount] = useState<string>('');
-  
+
   // Owner search state (separated by identification and name)
   const [ownerIdQuery, setOwnerIdQuery] = useState('');
   const [ownerIdOptions, setOwnerIdOptions] = useState<OwnerWithVehicles[]>([]);
@@ -40,12 +40,12 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
   const [ownerNameOptions, setOwnerNameOptions] = useState<OwnerWithVehicles[]>([]);
   const [ownerNameLoading, setOwnerNameLoading] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<OwnerWithVehicles | null>(null);
-  
+
   // Vehicle selection state (from owner's vehicles list)
   const [ownerVehicles, setOwnerVehicles] = useState<VehicleLite[]>([]);
   const [plate, setPlate] = useState<string>('');
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<number[]>([]);
-  
+
   const disabledAll = submitting;
 
   const resetOwnerSearch = () => {
@@ -201,7 +201,7 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
               Vehículo
             </Typography>
-            
+
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box sx={{ flex: 1 }}>
                 <Autocomplete
@@ -237,7 +237,7 @@ export default function OwnerIncomeCertificate({ hideTitle = false }: OwnerIncom
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
               Propietario
             </Typography>
-            
+
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box sx={{ flex: 1 }}>
                 <Autocomplete

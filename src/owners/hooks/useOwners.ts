@@ -1,20 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import api from '../services/http';
-import { useNotify } from '../services/notify';
-
-export interface OwnerLite {
-  id: number;
-  identification: string;
-  name: string;
-}
-
-interface Owner extends OwnerLite {
-  phone: string;
-  email: string;
-  address: string;
-}
-
-import { formatNumber, unformatNumber } from '../utils/formatting';
+import { useNotify } from '../../services/notify';
+import { formatNumber, unformatNumber } from '../../utils/formatting';
+import { Owner, OwnerLite } from '../interfaces/owner.interface';
+import { ownerService } from '../services/owner.service';
 
 export const useOwners = () => {
   const { success, error } = useNotify();
@@ -69,7 +57,7 @@ export const useOwners = () => {
     if (loading) return;
     setLoading(true);
     try {
-      const res = await api.get<Owner>(`/owner/${id}`);
+      const res = await ownerService.getById(id);
       populateForm(res.data);
     } catch (e) {
       // Keep form fields as is, but reset selection
@@ -98,7 +86,7 @@ export const useOwners = () => {
     const handle = setTimeout(async () => {
       setIdLoading(true);
       try {
-        const res = await api.get<OwnerLite[]>('/owner', { params: { identification: cleanQuery } });
+        const res = await ownerService.search({ identification: cleanQuery });
         setIdOptions(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
         setIdOptions([]);
@@ -121,7 +109,7 @@ export const useOwners = () => {
     const handle = setTimeout(async () => {
       setNameLoading(true);
       try {
-        const res = await api.get<OwnerLite[]>('/owner', { params: { name: q } });
+        const res = await ownerService.search({ name: q });
         setNameOptions(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
         setNameOptions([]);
@@ -145,7 +133,7 @@ export const useOwners = () => {
         name,
         issuedIn: issuedIn.trim()
       };
-      
+
       // Only add optional fields if they have a value
       if (phone && phone.trim()) {
         payload.phone = phone.trim();
@@ -158,17 +146,17 @@ export const useOwners = () => {
       }
 
       if (selectedOwnerId > 0) {
-        await api.put(`/owner/${selectedOwnerId}`, payload);
+        await ownerService.update(selectedOwnerId, payload);
         success('Propietario actualizado exitosamente');
       } else {
-        await api.post('/owner', payload);
+        await ownerService.create(payload);
         success('Propietario creado exitosamente');
         // Reset form after successful creation (only for new owners)
         resetForm();
       }
     } catch (err: any) {
       console.error('Error saving owner:', err);
-      
+
       // Handle specific error cases
       if (err?.response?.status === 409 && err?.response?.data?.error === 'IDENTIFICATION_ALREADY_EXISTS') {
         const identification = err.response.data.identification;

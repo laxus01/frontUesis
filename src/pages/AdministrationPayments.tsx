@@ -7,7 +7,7 @@ import { DatePicker } from '@mui/x-date-pickers';
 import type { Dayjs } from 'dayjs';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
-import { useOwners, OwnerLite } from '../hooks/useOwners';
+import { OwnerLite } from '../owners/interfaces/owner.interface';
 import { formatNumber } from '../utils/formatting';
 import { useAuth } from '../hooks/useAuth';
 

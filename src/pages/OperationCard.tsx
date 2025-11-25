@@ -14,7 +14,7 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import api from '../services/http';
 import { useNotify } from '../services/notify';
 import { formatNumber } from '../utils/formatting';
-import { OwnerLite } from '../hooks/useOwners';
+import { OwnerLite } from '../owners/interfaces/owner.interface';
 
 interface VehicleLite {
     id: number;
