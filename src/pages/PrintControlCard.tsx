@@ -549,45 +549,6 @@ export default function PrintControlCard(): JSX.Element {
             const fmt = (s?: string | null) => s ? dayjs(String(s).slice(0, 10)).format('YYYY-MM-DD') : '';
             const expiredDocs = getExpiredDocuments(item);
 
-            // Calculate the maximum allowed permit date (same logic as ControlCard.tsx)
-            const getMaxPermitDate = (): dayjs.Dayjs => {
-              const defaultMaxDate = dayjs().add(30, 'day'); // Default: today + 30 days
-
-              const expirationDates = [
-                item.driver?.expiresOn, // Driver's license expiration
-                item.soatExpires,
-                item.operationCardExpires,
-                item.contractualExpires,
-                item.extraContractualExpires,
-                item.technicalMechanicExpires
-              ].filter(date => date !== null && date !== undefined)
-                .map(date => dayjs(String(date).slice(0, 10)));
-
-              if (expirationDates.length === 0) {
-                // If no expiration dates are set, use default (today + 30 days)
-                return defaultMaxDate;
-              }
-
-              // Get the earliest expiration date from all documents
-              const earliestDocExpiration = expirationDates.reduce((earliest, current) =>
-                current.isBefore(earliest) ? current : earliest
-              );
-
-              // Return the earlier of: (today + 30 days) or (earliest document expiration)
-              // But never allow a date before today
-              const calculatedMax = earliestDocExpiration.isBefore(defaultMaxDate) ? earliestDocExpiration : defaultMaxDate;
-              const today = dayjs();
-
-              return calculatedMax.isBefore(today) ? today : calculatedMax;
-            };
-
-            // Calculate the permit date (don't use item.permitExpiresOn from API)
-            const calculatedPermitDate = getMaxPermitDate();
-
-            // For comparison purposes only - check if stored permit differs from calculated
-            const storedPermitDate = item.permitExpiresOn ? dayjs(String(item.permitExpiresOn).slice(0, 10)) : null;
-            const permitExceedsLimit = storedPermitDate && storedPermitDate.isAfter(calculatedPermitDate);
-
             return (
               <Card key={item.id} className="relative print:break-inside-avoid">
                 <CardContent>
@@ -647,17 +608,6 @@ export default function PrintControlCard(): JSX.Element {
                       </Alert>
                     )}
 
-                    {/* Permit Exceeds Limit Warning */}
-                    {permitExceedsLimit && (
-                      <Alert severity="warning" sx={{ mt: expiredDocs.length > 0 ? 1 : '30px' }}>
-                        <Typography variant="body2" fontWeight={600}>
-                          Advertencia: El permiso almacenado difiere del calculado
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                          Almacenado: {fmt(item.permitExpiresOn)} | Calculado: {calculatedPermitDate.format('YYYY-MM-DD')}
-                        </Typography>
-                      </Alert>
-                    )}
 
                     <Typography variant="subtitle1" fontWeight={600}>Conductor</Typography>
                     <Typography variant="body2">{fullName || '—'}</Typography>
@@ -668,14 +618,8 @@ export default function PrintControlCard(): JSX.Element {
                     <Typography variant="body2">Modelo: {v.model || '—'}</Typography>
 
                     <Typography variant="subtitle1" fontWeight={600} sx={{ mt: 1 }}>Vigencias</Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: permitExceedsLimit ? 'warning.main' : 'inherit',
-                        fontWeight: permitExceedsLimit ? 600 : 'normal'
-                      }}
-                    >
-                      Permiso: {calculatedPermitDate.format('YYYY-MM-DD')}
+                    <Typography variant="body2">
+                      Permiso: {fmt(item.permitExpiresOn) || '—'}
                     </Typography>
                     <Typography variant="body2">SOAT: {item.soat || '—'} {item.soatExpires ? `(vence ${fmt(item.soatExpires)})` : ''}</Typography>
                     <Typography variant="body2">Tarjeta Operación: {item.operationCard || '—'} {item.operationCardExpires ? `(vence ${fmt(item.operationCardExpires)})` : ''}</Typography>
