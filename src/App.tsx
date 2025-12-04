@@ -17,6 +17,8 @@ import AdministrationPayments from './pages/AdministrationPayments';
 import WorkCertificate from './pages/WorkCertificate';
 import OwnerIncomeCertificate from './pages/OwnerIncomeCertificate';
 import OperationCard from './pages/OperationCard';
+import OperationCardRequest from './pages/OperationCardRequest';
+import ActiveContract from './pages/ActiveContract';
 import Owners from './pages/Owners';
 import OperationCardsQuery from './pages/OperationCardsQuery';
 import Users from './pages/Users';
@@ -226,6 +228,16 @@ function App(): JSX.Element {
                   <Route path="/documents/work-certificate" element={
                     <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
                       <WorkCertificate />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/documents/operation-card-request" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
+                      <OperationCardRequest />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/documents/active-contract" element={
+                    <ProtectedRoute allowedPermissions={['SUPER', 'ADMIN', 'OPERATOR']}>
+                      <ActiveContract />
                     </ProtectedRoute>
                   } />
                   <Route path="/operation-card" element={

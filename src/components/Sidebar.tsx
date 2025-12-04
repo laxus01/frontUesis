@@ -234,6 +234,26 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
               <ul id="submenu-documents" className="mt-1 ml-6 space-y-1">
                 <li>
                   <NavLink
+                    to="/documents/operation-card-request"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">credit_card</span>
+                    <span>Tarjeta Operación</span>
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/documents/active-contract"
+                    onClick={onItemClick}
+                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
+                  >
+                    <span className="material-symbols-outlined text-base">assignment</span>
+                    <span>Contrato Vigente</span>
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
                     to="/documents/work-certificate"
                     onClick={onItemClick}
                     className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
@@ -242,17 +262,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                     <span>Referencia Laboral</span>
                   </NavLink>
                 </li>
-                {/* <li>
-                  <NavLink
-                    to="/operation-card"
-                    end
-                    onClick={onItemClick}
-                    className={({ isActive }: { isActive: boolean }) => `${linkBase} ${isActive ? linkActive : ''}`}
-                  >
-                    <span className="material-symbols-outlined text-base">credit_card</span>
-                    <span>Tarjeta de operación</span>
-                  </NavLink>
-                </li> */}
                 <li>
                   <NavLink
                     to="/documents"
