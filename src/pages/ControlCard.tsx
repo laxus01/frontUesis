@@ -468,8 +468,6 @@ export default function ControlCard(): JSX.Element {
 
   // Calculate maximum allowed date for permitExpiresOn based on the earliest expiration date from other documents
   const maxPermitDate = useMemo(() => {
-    const defaultMaxDate = dayjs().add(30, 'day'); // Default: today + 30 days
-
     const expirationDates = [
       expiresOn, // Driver's license expiration
       soatExpires,
@@ -480,8 +478,8 @@ export default function ControlCard(): JSX.Element {
     ].filter(date => date !== null) as Dayjs[];
 
     if (expirationDates.length === 0) {
-      // If no expiration dates are set, use default (today + 30 days)
-      return defaultMaxDate;
+      // If no expiration dates are set, return undefined (no limit)
+      return undefined;
     }
 
     // Get the earliest expiration date from all documents
@@ -489,12 +487,10 @@ export default function ControlCard(): JSX.Element {
       current.isBefore(earliest) ? current : earliest
     );
 
-    // Return the earlier of: (today + 30 days) or (earliest document expiration)
+    // The maximum is the earliest document expiration
     // But never allow a date before today
-    const calculatedMax = earliestDocExpiration.isBefore(defaultMaxDate) ? earliestDocExpiration : defaultMaxDate;
     const today = dayjs();
-
-    return calculatedMax.isBefore(today) ? today : calculatedMax;
+    return earliestDocExpiration.isBefore(today) ? today : earliestDocExpiration;
   }, [expiresOn, soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
 
   // Validate that all required fields in Control Sheet are filled
@@ -513,7 +509,7 @@ export default function ControlCard(): JSX.Element {
 
   // Auto-adjust permitExpiresOn if it exceeds the maximum allowed date
   useEffect(() => {
-    if (permitExpiresOn && permitExpiresOn.isAfter(maxPermitDate)) {
+    if (permitExpiresOn && maxPermitDate && permitExpiresOn.isAfter(maxPermitDate)) {
       setPermitExpiresOn(maxPermitDate);
     }
   }, [maxPermitDate, permitExpiresOn]);

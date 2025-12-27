@@ -81,8 +81,6 @@ export default function ControlCardEditModal({
 
   // Calculate maximum allowed date for permitExpiresOn based on the earliest expiration date from other documents
   const maxPermitDate = useMemo(() => {
-    const defaultMaxDate = dayjs().add(30, 'day'); // Default: today + 30 days
-
     const expirationDates = [
       driverExpiresOn, // Driver's license expiration
       soatExpires,
@@ -93,8 +91,8 @@ export default function ControlCardEditModal({
     ].filter(date => date !== null) as Dayjs[];
 
     if (expirationDates.length === 0) {
-      // If no expiration dates are set, use default (today + 30 days)
-      return defaultMaxDate;
+      // If no expiration dates are set, return null (no limit)
+      return null;
     }
 
     // Get the earliest expiration date from all documents
@@ -102,20 +100,24 @@ export default function ControlCardEditModal({
       current.isBefore(earliest) ? current : earliest
     );
 
-    // Return the earlier of: (today + 30 days) or (earliest document expiration)
+    // The maximum is the earliest document expiration
     // But never allow a date before today
-    const calculatedMax = earliestDocExpiration.isBefore(defaultMaxDate) ? earliestDocExpiration : defaultMaxDate;
     const today = dayjs();
-
-    return calculatedMax.isBefore(today) ? today : calculatedMax;
+    return earliestDocExpiration.isBefore(today) ? today : earliestDocExpiration;
   }, [driverExpiresOn, soatExpires, operationCardExpires, contractualExpires, extraContractualExpires, technicalMechanicExpires]);
 
-  // Set permitExpiresOn to the calculated maxPermitDate whenever it changes
+  // Set permitExpiresOn to default 30 days when modal opens
   useEffect(() => {
-    if (open && maxPermitDate) {
-      setPermitExpiresOn(maxPermitDate);
+    if (open) {
+      const defaultDate = dayjs().add(30, 'day');
+      // If there's a max limit and default exceeds it, use the max
+      if (maxPermitDate && defaultDate.isAfter(maxPermitDate)) {
+        setPermitExpiresOn(maxPermitDate);
+      } else {
+        setPermitExpiresOn(defaultDate);
+      }
     }
-  }, [maxPermitDate, open]);
+  }, [open, maxPermitDate]);
 
   // Helper function to parse date strings
   const parseDate = (dateStr?: string | null): Dayjs | null => {
@@ -329,7 +331,7 @@ export default function ControlCardEditModal({
                 onChange={(v) => setPermitExpiresOn(v)}
                 format="YYYY-MM-DD"
                 minDate={dayjs()}
-                maxDate={maxPermitDate}
+                maxDate={maxPermitDate ?? undefined}
                 slotProps={{ 
                   textField: { 
                     size: 'small', 
