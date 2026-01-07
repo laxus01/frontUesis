@@ -18,9 +18,11 @@ import {
   Delete as DeleteIcon,
   ToggleOn as ToggleOnIcon,
   ToggleOff as ToggleOffIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import DataTable, { TableColumn, TableAction } from '../components/common/DataTable';
 import VehicleFormModal from '../components/modals/VehicleFormModal';
+import VehicleStateHistoryModal from '../components/modals/VehicleStateHistoryModal';
 import { useVehiclesList, Vehicle } from '../hooks/useVehiclesList';
 import { useAuth } from '../hooks/useAuth';
 
@@ -34,6 +36,8 @@ export default function Vehicles(): JSX.Element {
   const [stateToggleDialogOpen, setStateToggleDialogOpen] = useState(false);
   const [vehicleToToggle, setVehicleToToggle] = useState<Vehicle | null>(null);
   const [toggleReason, setToggleReason] = useState('');
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedVehicleForHistory, setSelectedVehicleForHistory] = useState<Vehicle | null>(null);
 
   const columns: TableColumn<Vehicle>[] = [
     {
@@ -104,6 +108,16 @@ export default function Vehicles(): JSX.Element {
     }
   ];
 
+  const handleViewHistory = (vehicle: Vehicle) => {
+    setSelectedVehicleForHistory(vehicle);
+    setHistoryModalOpen(true);
+  };
+
+  const handleHistoryModalClose = () => {
+    setHistoryModalOpen(false);
+    setSelectedVehicleForHistory(null);
+  };
+
   // Solo mostrar acciones si el usuario puede gestionar datos.
   // Desactivar/Activar y Eliminar solo se muestran para usuarios ADMIN (o SUPER según useAuth).
   const actions: TableAction<Vehicle>[] = canManageData()
@@ -116,6 +130,12 @@ export default function Vehicles(): JSX.Element {
               setSelectedVehicle(vehicle);
               setModalOpen(true);
             },
+          },
+          {
+            label: 'Historial',
+            icon: <HistoryIcon />,
+            onClick: handleViewHistory,
+            color: 'info',
           },
           {
             label: (vehicle: Vehicle) => (vehicle.state === 1 ? 'Desactivar' : 'Activar'),
@@ -144,6 +164,12 @@ export default function Vehicles(): JSX.Element {
               setSelectedVehicle(vehicle);
               setModalOpen(true);
             },
+          },
+          {
+            label: 'Historial',
+            icon: <HistoryIcon />,
+            onClick: handleViewHistory,
+            color: 'info',
           },
         ]
     : [];
@@ -326,6 +352,16 @@ export default function Vehicles(): JSX.Element {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Vehicle State History Modal */}
+      {selectedVehicleForHistory && (
+        <VehicleStateHistoryModal
+          open={historyModalOpen}
+          onClose={handleHistoryModalClose}
+          vehicleId={selectedVehicleForHistory.id}
+          vehiclePlate={selectedVehicleForHistory.plate}
+        />
+      )}
     </Box>
   );
 }

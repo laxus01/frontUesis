@@ -21,9 +21,11 @@ import {
   PersonAddAlt1 as PersonAddAlt1Icon,
   ToggleOn as ToggleOnIcon,
   ToggleOff as ToggleOffIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import { DataTable } from '../components/common/DataTable';
 import DriverFormModal, { Driver } from '../components/modals/DriverFormModal';
+import DriverStateHistoryModal from '../components/modals/DriverStateHistoryModal';
 import { useDriversList } from '../hooks/useDriversList';
 import { useAuth } from '../hooks/useAuth';
 import type { TableColumn, TableAction } from '../components/common/DataTable';
@@ -41,6 +43,8 @@ export default function Drivers() {
   const [stateToggleDialogOpen, setStateToggleDialogOpen] = useState(false);
   const [driverToToggle, setDriverToToggle] = useState<Driver | null>(null);
   const [toggleReason, setToggleReason] = useState('');
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedDriverForHistory, setSelectedDriverForHistory] = useState<Driver | null>(null);
 
   const handleAdd = () => {
     setSelectedDriver(null);
@@ -110,6 +114,16 @@ export default function Drivers() {
     setStateToggleDialogOpen(false);
     setDriverToToggle(null);
     setToggleReason('');
+  };
+
+  const handleViewHistory = (driver: Driver) => {
+    setSelectedDriverForHistory(driver);
+    setHistoryModalOpen(true);
+  };
+
+  const handleHistoryModalClose = () => {
+    setHistoryModalOpen(false);
+    setSelectedDriverForHistory(null);
   };
 
   const columns: TableColumn<Driver>[] = [
@@ -230,6 +244,12 @@ export default function Drivers() {
             color: 'primary',
           },
           {
+            label: 'Historial',
+            icon: <HistoryIcon />,
+            onClick: handleViewHistory,
+            color: 'info',
+          },
+          {
             label: driver => (driver.state === 1 ? 'Desactivar' : 'Activar'),
             icon: (driver) => (driver.state === 1 ? <ToggleOffIcon /> : <ToggleOnIcon />),
             onClick: (driver) => {
@@ -251,6 +271,12 @@ export default function Drivers() {
             icon: <Edit />,
             onClick: handleEdit,
             color: 'primary',
+          },
+          {
+            label: 'Historial',
+            icon: <HistoryIcon />,
+            onClick: handleViewHistory,
+            color: 'info',
           },
         ]
     : [];
@@ -428,6 +454,16 @@ export default function Drivers() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Driver State History Modal */}
+      {selectedDriverForHistory && (
+        <DriverStateHistoryModal
+          open={historyModalOpen}
+          onClose={handleHistoryModalClose}
+          driverId={selectedDriverForHistory.id}
+          driverName={`${selectedDriverForHistory.firstName} ${selectedDriverForHistory.lastName}`}
+        />
+      )}
     </Box>
   );
 }
