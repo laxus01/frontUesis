@@ -31,6 +31,7 @@ import VehicleStateHistoryService, {
   VehicleStateHistoryRecord,
 } from '../../services/vehicle-state-history.service';
 import { useNotify } from '../../services/notify';
+import { useAuth } from '../../hooks/useAuth';
 
 interface VehicleStateHistoryModalProps {
   open: boolean;
@@ -78,6 +79,7 @@ export default function VehicleStateHistoryModal({
   const [editedReason, setEditedReason] = useState('');
   const [updating, setUpdating] = useState(false);
   const { success, error: notifyError } = useNotify();
+  const { isAdmin } = useAuth();
 
   const fetchHistory = async () => {
     if (!vehicleId) return;
@@ -274,33 +276,42 @@ export default function VehicleStateHistoryModal({
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
-                          <Tooltip title="Editar razón">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEditClick(record)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip 
-                            title={
-                              canDelete 
-                                ? "Eliminar registro" 
-                                : "No se puede eliminar el registro más reciente (estado actual del vehículo)"
-                            }
-                          >
-                            <span>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDeleteClick(record)}
-                                disabled={!canDelete}
+                          {isAdmin() && (
+                            <>
+                              <Tooltip title="Editar razón">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEditClick(record)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip 
+                                title={
+                                  canDelete 
+                                    ? "Eliminar registro" 
+                                    : "No se puede eliminar el registro más reciente (estado actual del vehículo)"
+                                }
                               >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleDeleteClick(record)}
+                                    disabled={!canDelete}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </>
+                          )}
+                          {!isAdmin() && (
+                            <Typography variant="body2" color="text.secondary">
+                              -
+                            </Typography>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
