@@ -54,6 +54,11 @@ interface DriverVehicleHistory {
   historyCreatedAt: string;
   driver: Driver;
   vehicle: Vehicle;
+  user?: {
+    id: number;
+    name: string;
+    user: string;
+  };
 }
 
 const OperationCardsQuery: React.FC = () => {
@@ -684,6 +689,11 @@ const OperationCardsQuery: React.FC = () => {
                       <Typography variant="caption" color="text.secondary">Extra Contractual: {record.extraContractualExpires}</Typography>
                       <Typography variant="caption" color="text.secondary">Tecnomecánica: {record.technicalMechanicExpires}</Typography>
                     </Stack>
+                    {record.user && (
+                      <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block', fontStyle: 'italic' }}>
+                        Registrado por: {record.user.name}
+                      </Typography>
+                    )}
                   </Box>
                 ))}
               </Stack>
