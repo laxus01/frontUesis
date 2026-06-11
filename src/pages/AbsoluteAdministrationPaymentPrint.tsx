@@ -98,6 +98,7 @@ export default function AbsoluteAdministrationPaymentPrint(): JSX.Element {
         .head .l3 { font-size: 12px; }
         .head .l4 { font-size: 12px; }
         .head .l5 { font-size: 12px; }
+        .mt-60 { margin-top: 60px; }
       `}</style>
 
       <div className="wrap">
@@ -127,7 +128,10 @@ export default function AbsoluteAdministrationPaymentPrint(): JSX.Element {
         )}
         {item.detail && (
           <div className="detail"><span className="label">Detalle:</span> {item.detail}</div>
-        )}
+        )}     
+        <div className="row mt-60">
+          <div className="field"><span className="label">Firma y sello:</span> _________________________</div>
+        </div>
       </div>
     </div>
   );
